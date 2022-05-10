@@ -127,6 +127,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         self.auditor.make_categories(X, y_init)
         # bootstrap sample X,y
         bootstraps = 0
+        worst_cat = None
         while iters < self.max_iters and updated == True:
             Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
                               # stratify=y_true, 
@@ -142,10 +143,15 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             # else:
             #     ys_pred = pd.Series(self.predict_proba(Xs)[:,1],
             #                         index=Xs.index)
-            categories = self.auditor.categorize(Xs, ys_pred).items()
-            progress_bar = tqdm(categories)
+            categories = self.auditor.categorize(Xs, ys_pred)
+            if worst_cat != None:
+                if worst_cat not in categories:
+                    ipdb.set_trace()
+            progress_bar = tqdm(categories.items())
             # for category, idx in categories:
             for category, idx in progress_bar:
+                if category == worst_cat:
+                    ipdb.set_trace()
                 # calc average risk prediction 
                 r = ys_pred.loc[idx]
                 rbar = np.mean(r)
@@ -159,17 +165,19 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 delta = ybar - rbar
                 # check 
                 alpha = self.alpha if self.metric=='MC' else self.alpha*ybar
-                print(
-                      # f'category:{category},'
-                      # f'prediction: {r:3f}',
-                      f'rbar:{rbar:3f}',
-                      f'ybar:{ybar:3f}',
-                      f'delta:{delta:3f}',
-                      f'alpha:{alpha:3f}'
-                     )
+                if category == worst_cat:
+                    print(
+                          # f'category:{category},'
+                          # f'prediction: {r:3f}',
+                          f'rbar:{rbar:3f}',
+                          f'ybar:{ybar:3f}',
+                          f'delta:{delta:3f}',
+                          f'alpha:{alpha:3f}'
+                         )
                 if np.abs(delta) > alpha:
                     update = self.eta*delta
-                    print('updating...')
+                    if category == worst_cat:
+                        print('updating', category)
                     # print(f'category size: {len(idx)}')
                     # print(f'delta ({delta:.3f}) > alpha ({alpha:.2f})')
                     # print(f'update:{update:3f}')
@@ -179,13 +187,16 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     y_adjusted.loc[idx] += update
                     y_adjusted.loc[idx] = utils.squash_series(y_adjusted.loc[idx])
                     squashed_update = y_adjusted.loc[idx].mean() - y_unadjusted.mean()  
-                    if np.abs(squashed_update - update) > 0.001:
-                        print(f'squashed_update:{squashed_update:.4f}',
-                              f'update: {update:.4f}')
+
+                    # if np.abs(squashed_update - update) > 0.001:
+                    #     print(f'squashed_update:{squashed_update:.4f}',
+                    #           f'update: {update:.4f}')
+
                     if category in self.adjustments_.keys():
                         self.adjustments_[category] += squashed_update
                     else:
                         self.adjustments_[category] = squashed_update
+
                     updated=True
                     n_updates += 1
 
@@ -200,7 +211,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     #                      index=X.index)
                     MSE = mse(y_true, y_adjusted)
                      
-                    cal_loss = self.auditor_.loss(X, y_true, y_adjusted)
+                    cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
                     progress_bar.set_description(
                                                  f'categories:{len(categories)}, '
                                                  f'updates:{n_updates}, '
@@ -215,8 +226,9 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 print('no updates this round')
                 break
         print('finished. updates:', n_updates)
-        print('initial multicalibration:', self.auditor_.loss(X, y_true, y_init))
-        print('final multicalibration:', self.auditor_.loss(X, y_true, y_adjusted))
+        print('initial multicalibration:', self.auditor_.loss(y_true, y_init)[0])
+        print('final multicalibration:', self.auditor_.loss(y_true,
+                                                            y_adjusted)[0])
         print('adjustments:',self.adjustments_)
         # Return the classifier
         return self

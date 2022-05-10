@@ -54,10 +54,10 @@ class Auditor():
     def categorize(self, X, y, y_true=None):
         """Map data to an existing set of categories."""
 
-        df = X.copy()
+        df = X #.copy()
         df['interval']  = pd.cut(y, self.bins_)
 
-        categories = df.groupby(self.groups+['interval'], sort=False).groups
+        categories = df.groupby(self.grouping_, sort=False).groups
 
         # min_size = self.gamma*self.alpha*len(X)/self.n_bins
         categories = {k:v for k,v in categories.items() 
@@ -84,59 +84,49 @@ class Auditor():
         # print('bins:',bins)
 
         self.categories_ = None 
-        df = X.copy()
+        df = X #.copy()
         df['interval'], bins = pd.cut(y, self.n_bins, retbins=True)
         self.bins_ = bins
-        # print('bins:',self.bins_)
+        print('bins:',self.bins_)
+        self.grouping_ = self.groups+['interval']
+        self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins
 
-        if self.groups is not None:
-            self.grouping_ = self.groups+['interval']
-            # get unique intersections
-            # ipdb.set_trace()
-            # grouped = X.groupby(self.groups) #.indices
-            # subgroups = X.groupby(self.groups).indices
-            # subgroups = {k:v for k,v in subgroups.items() 
-            #              if len(v) > self.gamma*N} 
-            # # subgroups = X[self.groups].drop_duplicates() 
-            # # groupsizes = X.groupby(self.groups).count() 
-            # # subgroups = [s for s in X[self.groups].drop_duplicates() 
-            # #              if len(X.loc[X[self.groups].equals(s)]) > self.gamma*N
-            # #             ]
-            categories = df.groupby(self.groups+['interval'], sort=False).groups
-            self.all_categories_ = categories.copy()
-            # filter groupings less than gamma * N * alpha * lambda
-            # if threshold:
-            self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins
-            categories = {k:v for k,v in categories.items() 
-                          if len(v) > self.min_size_ 
-                          # if (len(v) > min_size 
-                              # and y.loc[k].mean() > self.rho)
-                         } 
-            self.categories_ = categories 
-            # for (bmin,bmax) in bins:
-            #     interval = lambda y: y > bmin and y <= bmax
-            #     for g,idx in subgroups:
-            #         group = lambda x: all([x[i]==gi for i,gi in
-            #                                zip(self.groups,g)])
+        self.categories_ = self.categorize(X,y)
 
-            #         category = lambda x,y: group(x) and interval(y)
-                    
-            #         subset = [category(xi,yi) for xi,yi in zip(X, y)]
-                    
-            #         idx = np.asarray(subset).nonzero()
-            #         if len(idx) > self.gamma * self.alpha * 1/self.n_bins * N:
-            #             self.categories_.append( (category, idx) )
+        # categories = df.groupby(self.groups+['interval'], sort=False).groups
+        # self.all_categories_ = categories.copy()
+        # filter groupings less than gamma * N * alpha * lambda
+        # # if threshold:
+        # categories = {k:v for k,v in categories.items() 
+        #               if len(v) > self.min_size_ 
+        #               # if (len(v) > min_size 
+        #                   # and y.loc[k].mean() > self.rho)
+        #              } 
+        # self.categories_ = categories 
+        # for (bmin,bmax) in bins:
+        #     interval = lambda y: y > bmin and y <= bmax
+        #     for g,idx in subgroups:
+        #         group = lambda x: all([x[i]==gi for i,gi in
+        #                                zip(self.groups,g)])
+
+        #         category = lambda x,y: group(x) and interval(y)
+                
+        #         subset = [category(xi,yi) for xi,yi in zip(X, y)]
+                
+        #         idx = np.asarray(subset).nonzero()
+        #         if len(idx) > self.gamma * self.alpha * 1/self.n_bins * N:
+        #             self.categories_.append( (category, idx) )
         return self.categories_ #.items()
 
-    def loss(self, X, y_true, y_pred):
+    def loss(self, y_true, y_pred):
         """calculate current loss in terms of multicalibration or PMC"""
         alpha = 0.0
         worst = None 
         # min_size = self.gamma*self.alpha*self.N_/self.n_bins
 
-        categories = self.categorize(X, y_pred)
+        # categories = self.categorize(X, y_pred)
 
-        for c, idx in categories.items():
+        for c, idx in self.categories_.items():
             if len(idx) < self.min_size_ or y_pred.iloc[idx].mean() < self.rho:
                 continue
             category_loss = np.abs(y_true.iloc[idx].mean() 
@@ -149,6 +139,6 @@ class Auditor():
             if  category_loss > alpha:
                 alpha = category_loss
                 worst = (c, idx)
-        print('worst category:',c,'size:',len(idx),'loss:',alpha)
-        return alpha
+        # print('worst category:',c,'size:',len(idx),'loss:',alpha)
+        return alpha, c
 
