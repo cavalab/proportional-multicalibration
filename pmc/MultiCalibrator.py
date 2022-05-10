@@ -64,7 +64,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                  random_state=0
                 ):
         self.estimator=estimator
-        self.auditor=auditor
+        self.auditor_type=auditor
         self.metric=metric
         self.alpha=alpha
         self.n_bins=n_bins
@@ -102,7 +102,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         assert hasattr(self.estimator, 'predict_proba'), ("Classifier has no"
                                                     "'predict_proba' method")
 
-        self.auditor_ = self.auditor
+        self.auditor_ = copy(self.auditor_type)
         for att in ['alpha','n_bins','gamma','rho','metric','random_state']:
             setattr(self.auditor_, att, getattr(self,att))
         
@@ -124,16 +124,24 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             category=[] 
         )
 
-        self.auditor.make_categories(X, y_init)
+        self.auditor_.make_categories(X, y_init)
         # bootstrap sample X,y
         bootstraps = 0
         worst_cat = None
+        Xs, ys = X, y_true
         while iters < self.max_iters and updated == True:
-            Xs, ys, ys_pred = X, y_true, y_adjusted
+            # Xs, ys, ys_pred = X, y_true, y_adjusted
+            ys_pred = y_adjusted.copy()
+            Xs = X.copy()
+            prev_cal_loss, prev_worst_c, prev_worst_idx, cats =  \
+                    self.auditor_.loss(ys, ys_pred, Xs, return_cat=True)
             # Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
             #                   stratify=y_true, 
             #                   random_state=self.random_state
             #                  )
+            print('----------------',iters,'-------------------')
+            print('initial worst category from auditor:',
+                  prev_worst_c, 'alpha = ', prev_cal_loss)
             bootstraps +=1 
             # print(f'ys balance: {ys.sum()/len(ys)}')
             updated=False
@@ -144,13 +152,21 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             # else:
             #     ys_pred = pd.Series(self.predict_proba(Xs)[:,1],
             #                         index=Xs.index)
-            categories = self.auditor.categorize(Xs, ys_pred)
+            categories = self.auditor_.categorize(Xs, ys_pred)
+            utils.category_diff(categories, cats)
+
+            assert prev_worst_c in categories.keys()
+            # ipdb.set_trace()
             # if worst_cat != None:
             #     if worst_cat not in categories:
             #         ipdb.set_trace()
-            progress_bar = tqdm(categories.items())
-            # for category, idx in categories:
-            for category, idx in progress_bar:
+            # progress_bar = tqdm(categories.items())
+            Mworst_delta = 0
+
+            for category, idx in categories.items():
+            # for category, idx in [(prev_worst_c, prev_worst_idx)]:
+                # print(category) #,idx)
+            # for category, idx in progress_bar:
                 # if category == worst_cat:
                 #     ipdb.set_trace()
                 # calc average risk prediction 
@@ -158,36 +174,56 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 rbar = np.mean(r)
                 # calc actual average risk for the group
                 # ipdb.set_trace()
-                ybar = ys.loc[idx].sum()/len(ys.loc[idx])
+                # ybar = y_true.loc[idx].mean()
+                ybar = ys.loc[idx].mean()
+                # assert ybar == ys.loc[idx].sum()/len(ys.loc[idx])
                 # if ybar is too small, skip
-                if ybar < self.rho:
+                if self.metric=='PMC' and ybar < self.rho:
+                    print('Not Updating, low rho: '
+                          f'category:{category},'
+                          # f'prediction: {r:3f}',
+                          f'rbar:{rbar:3f}',
+                          f'ybar:{ybar:3f}',
+                          f'delta:{delta:3f}',
+                          f'alpha:{alpha:3f}'
+                         )
                     continue
                 # delta 
                 delta = ybar - rbar
+                
                 # check 
                 alpha = self.alpha if self.metric=='MC' else self.alpha*ybar
-                # if category == worst_cat:
-                #     print(
-                #           f'category:{category},'
-                #           # f'prediction: {r:3f}',
-                #           f'rbar:{rbar:3f}',
-                #           f'ybar:{ybar:3f}',
-                #           f'delta:{delta:3f}',
-                #           f'alpha:{alpha:3f}'
-                #          )
+                # if category == prev_worst_c:
+                    # ipdb.set_trace()
+                if np.abs(delta) > Mworst_delta:
+                    Mworst_delta=np.abs(delta)
+                    Mworst_c = category
+                    Mworst_idx = idx
+
                 if np.abs(delta) > alpha:
                     update = self.eta*delta
-                    if category == worst_cat:
-                        print('updating', category)
+
+                    print('Updating '
+                          f'category:{category},'
+                          # f'prediction: {r:3f}',
+                          f'rbar:{rbar:3f}',
+                          f'ybar:{ybar:3f}',
+                          f'delta:{delta:3f}',
+                          f'alpha:{alpha:3f}'
+                         )
+                    # if category == worst_cat:
+                    #     print('updating', category)
                     # print(f'category size: {len(idx)}')
                     # print(f'delta ({delta:.3f}) > alpha ({alpha:.2f})')
                     # print(f'update:{update:3f}')
                     # update estimates 
                     # ipdb.set_trace()
-                    y_unadjusted = y_adjusted.loc[idx].copy()
+                    y_unadjusted = y_adjusted.copy()
                     y_adjusted.loc[idx] += update
-                    y_adjusted.loc[idx] = utils.squash_series(y_adjusted.loc[idx])
-                    squashed_update = y_adjusted.loc[idx].mean() - y_unadjusted.mean()  
+                    y_adjusted.loc[idx] = utils.squash_series(
+                                                        y_adjusted.loc[idx])
+                    squashed_update = (y_adjusted.loc[idx].mean() 
+                                       - y_unadjusted.mean() )
 
                     # if np.abs(squashed_update - update) > 0.001:
                     #     print(f'squashed_update:{squashed_update:.4f}',
@@ -203,27 +239,39 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
 
                     assert y_adjusted.max() <= 1.0 and y_adjusted.min() >= 0.0
                     # make sure update was good
-                    r1 = y_adjusted.loc[idx]
-                    rbar1 = r1.mean()
-                    ybar1 = ys.loc[idx].sum()/len(ys.loc[idx])
+                    rnew = y_adjusted.loc[idx]
+                    rbarnew = rnew.mean()
                     # if ( np.abs(ybar1 - rbar1) >= np.abs(ybar-rbar) ):
                     #     ipdb.set_trace()
                     # new_pred = pd.Series(self.predict_proba(X)[:,1],
                     #                      index=X.index)
-                    MSE = mse(y_true, y_adjusted)
-                     
-                    cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
+                    if any(y_adjusted.isna()):
+                        ipd.set_trace()
+
                     # cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
-                    progress_bar.set_description(
-                                                 f'categories:{len(categories)}, '
-                                                 f'updates:{n_updates}, '
-                                                 f'{self.metric}:{cal_loss:.3f}, '
-                                                 f'MSE:{MSE:.3f} '
-                                                )
+                    # progress_bar.set_description(
+                    #                              f'categories:{len(categories)}, '
+                    #                              f'updates:{n_updates}, '
+                    #                              # f'{self.metric}:{cal_loss:.3f}, '
+                    #                              # f'MSE:{MSE:.3f} '
+                    #                             )
                 iters += 1
                 if iters >= self.max_iters: 
                     print('max iters reached')
                     break
+
+            MSE = mse(y_true, y_adjusted)
+            # prev_cal_loss, prev_worst_c, prev_worst_idx =  self.auditor_.loss(y_true, y_unadjusted, X)
+            cal_loss, worst_c, worst_idx = self.auditor_.loss(
+                                                     y_true, 
+                                                     y_adjusted,
+                                                     X
+                                                    )
+            print('worst category from multicalibrator:',
+                  Mworst_c, 'alpha = ',Mworst_delta)
+            print('new worst category from auditor:',
+                  worst_c, 'alpha = ',cal_loss)
+            # ipdb.set_trace()
             if not updated:
                 print('no updates this round')
                 break
