@@ -155,11 +155,6 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         # prev_cal_loss = init_cal_loss
         progress_bar = tqdm(total=100, unit='%')
         for i in range(self.max_iters):
-            # cal_loss, worst_c, worst_idx = self.auditor_.loss(
-            #                                          y_true, 
-            #                                          y_adjusted,
-            #                                          X
-            #                                         )
             # Xs, ys, ys_pred = X, y_true, y_adjusted
             ys_pred = y_adjusted.copy()
             Xs = X.copy()
@@ -243,20 +238,17 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     # update estimates 
                     y_unadjusted = y_adjusted.copy()
                     y_adjusted.loc[idx] += update
-                    y_adjusted.loc[idx] = utils.squash_series(
-                                                        y_adjusted.loc[idx])
-                    squashed_update = (y_adjusted.loc[idx].mean() 
-                                       - y_unadjusted.loc[idx].mean() )
+                    # squashed_update = (y_adjusted.loc[idx].mean() 
+                    #                    - y_unadjusted.loc[idx].mean() )
 
                     if updated == False:
                         self.adjustments_.append({})
 
-                    self.adjustments_[-1][category] = squashed_update
+                    self.adjustments_[-1][category] = update
 
                     updated=True
                     n_updates += 1
 
-                    assert y_adjusted.max() <= 1.0 and y_adjusted.min() >= 0.0
                     # make sure update was good
                     rnew = y_adjusted.loc[idx]
                     rbarnew = rnew.mean()
@@ -264,8 +256,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     #     ipdb.set_trace()
                     # new_pred = pd.Series(self.predict_proba(X)[:,1],
                     #                      index=X.index)
-                    if any(y_adjusted.isna()):
-                        ipd.set_trace()
+                    assert not any(y_adjusted.isna())
 
                     # cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
                 iters += 1
@@ -275,6 +266,8 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                                 ' criterion was satisfied.')
                     break
 
+            y_adjusted = utils.squash_series(y_adjusted)
+            assert y_adjusted.max() <= 1.0 and y_adjusted.min() >= 0.0
             # MSE = mse(y_true, y_adjusted)
             # prev_cal_loss, prev_worst_c, prev_worst_idx =  self.auditor_.loss(y_true, y_unadjusted, X)
             new_cal_loss, worst_c, worst_idx = self.auditor_.loss(
@@ -301,7 +294,8 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         y_end = pd.Series(self.predict_proba(X)[:,1], index=X.index)
         print('mse:',mse(y_adjusted, y_end))
         print('r2:',r2_score(y_adjusted, y_end))
-        assert np.equal(y_adjusted.values.round(5), y_end.round(5) ).all()
+        # assert np.equal(y_adjusted.values.round(5), y_end.round(5) ).all()
+        np.testing.assert_allclose(y_adjusted, y_end, rtol=1e-04)
         init_MC = self.auditor_.loss(y_true, y_init,X, metric='MC')[0]
         final_MC = self.auditor_.loss(y_true, y_end,X, metric='MC')[0]
         init_PMC = self.auditor_.loss(y_true, y_init,X, metric='PMC')[0]
@@ -348,9 +342,11 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
 
         for adjust_iter in self.adjustments_:
             categories = self.auditor_.categorize(X, y_pred)
-            for category, adjustment in adjust_iter.items(): 
+            for category, update in adjust_iter.items(): 
                 if category in categories.keys():
-                    y_pred.loc[categories[category]] += adjustment 
+                    idx = categories[category]
+                    y_pred.loc[idx] += update
+                    # y_pred.loc[idx] = utils.squash_series(y_pred.loc[idx])
                 # else:
                 #     logger.warn(f'y_pred missing category {category}')
             y_pred = utils.squash_series(y_pred)

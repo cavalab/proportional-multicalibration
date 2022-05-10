@@ -17,7 +17,7 @@ MC = MultiCalibrator(
                      auditor = Auditor(groups=groups),
                      # metric = 'PMC',
                      metric = 'MC',
-                     eta = 0.3,
+                     eta = 0.7,
                      gamma=0.02,
                      alpha=0.01,
                      max_iters=10**6,
