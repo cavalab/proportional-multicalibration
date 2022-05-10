@@ -150,8 +150,8 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             progress_bar = tqdm(categories.items())
             # for category, idx in categories:
             for category, idx in progress_bar:
-                if category == worst_cat:
-                    ipdb.set_trace()
+                # if category == worst_cat:
+                #     ipdb.set_trace()
                 # calc average risk prediction 
                 r = ys_pred.loc[idx]
                 rbar = np.mean(r)
@@ -167,7 +167,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 alpha = self.alpha if self.metric=='MC' else self.alpha*ybar
                 if category == worst_cat:
                     print(
-                          # f'category:{category},'
+                          f'category:{category},'
                           # f'prediction: {r:3f}',
                           f'rbar:{rbar:3f}',
                           f'ybar:{ybar:3f}',
