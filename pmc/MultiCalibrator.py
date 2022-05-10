@@ -129,10 +129,11 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         bootstraps = 0
         worst_cat = None
         while iters < self.max_iters and updated == True:
-            Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
-                              stratify=y_true, 
-                              random_state=self.random_state
-                             )
+            Xs, ys, ys_pred = X, y_true, y_adjusted
+            # Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
+            #                   stratify=y_true, 
+            #                   random_state=self.random_state
+            #                  )
             bootstraps +=1 
             # print(f'ys balance: {ys.sum()/len(ys)}')
             updated=False
@@ -165,15 +166,15 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 delta = ybar - rbar
                 # check 
                 alpha = self.alpha if self.metric=='MC' else self.alpha*ybar
-                if category == worst_cat:
-                    print(
-                          f'category:{category},'
-                          # f'prediction: {r:3f}',
-                          f'rbar:{rbar:3f}',
-                          f'ybar:{ybar:3f}',
-                          f'delta:{delta:3f}',
-                          f'alpha:{alpha:3f}'
-                         )
+                # if category == worst_cat:
+                #     print(
+                #           f'category:{category},'
+                #           # f'prediction: {r:3f}',
+                #           f'rbar:{rbar:3f}',
+                #           f'ybar:{ybar:3f}',
+                #           f'delta:{delta:3f}',
+                #           f'alpha:{alpha:3f}'
+                #          )
                 if np.abs(delta) > alpha:
                     update = self.eta*delta
                     if category == worst_cat:
@@ -205,18 +206,18 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     r1 = y_adjusted.loc[idx]
                     rbar1 = r1.mean()
                     ybar1 = ys.loc[idx].sum()/len(ys.loc[idx])
-                    if ( np.abs(ybar1 - rbar1) >= np.abs(ybar-rbar) ):
-                        ipdb.set_trace()
+                    # if ( np.abs(ybar1 - rbar1) >= np.abs(ybar-rbar) ):
+                    #     ipdb.set_trace()
                     # new_pred = pd.Series(self.predict_proba(X)[:,1],
                     #                      index=X.index)
                     MSE = mse(y_true, y_adjusted)
                      
-                    # cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
-                    cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
+                    cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
+                    # cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
                     progress_bar.set_description(
                                                  f'categories:{len(categories)}, '
                                                  f'updates:{n_updates}, '
-                                                 f'cal_loss:{cal_loss:.3f}, '
+                                                 f'{self.metric}:{cal_loss:.3f}, '
                                                  f'MSE:{MSE:.3f} '
                                                 )
                 iters += 1

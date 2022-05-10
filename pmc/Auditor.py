@@ -128,8 +128,8 @@ class Auditor():
         # categories = self.categorize(X, y_pred)
 
         for c, idx in self.categories_.items():
-            if len(idx) < self.min_size_ or y_pred.iloc[idx].mean() < self.rho:
-                continue
+            # if len(idx) < self.min_size_ or y_pred.iloc[idx].mean() < self.rho:
+            #     continue
             category_loss = np.abs(y_true.iloc[idx].mean() 
                                    - y_pred.iloc[idx].mean()
                                   )
