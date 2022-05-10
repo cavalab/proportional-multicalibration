@@ -83,13 +83,17 @@ class Auditor():
         assert isinstance(X, pd.DataFrame), "X should be a dataframe"
         self.N_ = len(X)
         # bins = [(i,i+1) for i in np.linspace(0.0,1.0, self.n_bins)[:-1]]
-        bins = np.linspace(0.0+1/self.n_bins,1.0, self.n_bins)
+        # bins = np.linspace(0.0+1/self.n_bins,1.0, self.n_bins)
         # print('bins:',bins)
 
         self.categories_ = None 
         # df = X.copy()
-        interval, bins = pd.cut(y, bins, include_lowest=True, retbins=True)
+        interval, bins = pd.cut(y, self.n_bins, include_lowest=True, 
+                                retbins=True)
+        # interval, bins = pd.cut(y, bins, include_lowest=True, retbins=True)
         self.bins_ = bins
+        self.bins_[0] = 0.0
+        self.bins_[-1] = 1.0
         print('bins:',self.bins_)
         self.grouping_ = self.groups+['interval']
         self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins
@@ -100,25 +104,22 @@ class Auditor():
 
         return self.categories_ 
 
-    def loss(self, y_true, y_pred, X=None, return_cat=False):
+    def loss(self, y_true, y_pred, X=None, return_cat=False,
+             metric=None):
         """calculate current loss in terms of multicalibration or PMC"""
+        metric = self.metric if metric == None else metric
         alpha = 0.0
         worst = None 
         # min_size = self.gamma*self.alpha*self.N_/self.n_bins
         categories = self.categorize(X, y_pred)
 
         for c, idx in categories.items():
-        # for c, idx in self.categories_.items():
-            # if len(idx) < self.min_size_ or y_pred.loc[idx].mean() < self.rho:
-            #     continue
-            if self.metric=='PMC' and y_true.loc[idx].mean() < self.rho:
-                continue
 
             category_loss = np.abs(y_true.loc[idx].mean() 
                                    - y_pred.loc[idx].mean()
                                   )
             # print(c,len(idx),category_loss)
-            if self.metric=='PMC': 
+            if metric=='PMC': 
                 category_loss /= max(y_true.loc[idx].mean(), self.rho)
 
             if  category_loss > alpha:
@@ -126,7 +127,6 @@ class Auditor():
                 worst = (c, idx)
                 worstc = c
                 worstidx = idx
-        # ipdb.set_trace()
         # print('worst category:',worst[0],'size:',len(worst[1]),'loss:',alpha)
         if return_cat:
             return alpha, worstc, worstidx, categories

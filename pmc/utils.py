@@ -27,5 +27,8 @@ def category_diff(cat1, cat2):
                 print(f'indices for {k2} different in cat1')
                 different=True
     if not different:
-        print('categories match.')
+        # print('categories match.')
+        return True
+    else:
+        return False
 

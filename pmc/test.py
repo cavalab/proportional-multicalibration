@@ -17,10 +17,11 @@ MC = MultiCalibrator(
                      auditor = Auditor(groups=groups),
                      # metric = 'PMC',
                      metric = 'MC',
-                     eta = 1.0,
-                     gamma=0.05,
+                     eta = 0.3,
+                     gamma=0.02,
                      alpha=0.01,
-                     max_iters=10**6
+                     max_iters=10**6,
+                     verbosity=2
                     )
 
 MC.fit(X,y)
