@@ -130,7 +130,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         worst_cat = None
         while iters < self.max_iters and updated == True:
             Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
-                              # stratify=y_true, 
+                              stratify=y_true, 
                               random_state=self.random_state
                              )
             bootstraps +=1 
@@ -144,9 +144,9 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             #     ys_pred = pd.Series(self.predict_proba(Xs)[:,1],
             #                         index=Xs.index)
             categories = self.auditor.categorize(Xs, ys_pred)
-            if worst_cat != None:
-                if worst_cat not in categories:
-                    ipdb.set_trace()
+            # if worst_cat != None:
+            #     if worst_cat not in categories:
+            #         ipdb.set_trace()
             progress_bar = tqdm(categories.items())
             # for category, idx in categories:
             for category, idx in progress_bar:
@@ -211,7 +211,8 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     #                      index=X.index)
                     MSE = mse(y_true, y_adjusted)
                      
-                    cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
+                    # cal_loss, worst_cat = self.auditor_.loss(y_true, y_adjusted)
+                    cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
                     progress_bar.set_description(
                                                  f'categories:{len(categories)}, '
                                                  f'updates:{n_updates}, '
@@ -226,9 +227,9 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 print('no updates this round')
                 break
         print('finished. updates:', n_updates)
-        print('initial multicalibration:', self.auditor_.loss(y_true, y_init)[0])
+        print('initial multicalibration:', self.auditor_.loss(y_true, y_init,X)[0])
         print('final multicalibration:', self.auditor_.loss(y_true,
-                                                            y_adjusted)[0])
+                                                            y_adjusted,X)[0])
         print('adjustments:',self.adjustments_)
         # Return the classifier
         return self

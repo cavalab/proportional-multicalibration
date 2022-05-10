@@ -84,7 +84,7 @@ class Auditor():
         # print('bins:',bins)
 
         self.categories_ = None 
-        df = X #.copy()
+        df = X.copy()
         df['interval'], bins = pd.cut(y, self.n_bins, retbins=True)
         self.bins_ = bins
         print('bins:',self.bins_)
@@ -93,6 +93,7 @@ class Auditor():
 
         self.categories_ = self.categorize(X,y)
 
+        print('min_size:',self.min_size_)
         # categories = df.groupby(self.groups+['interval'], sort=False).groups
         # self.all_categories_ = categories.copy()
         # filter groupings less than gamma * N * alpha * lambda
@@ -118,7 +119,7 @@ class Auditor():
         #             self.categories_.append( (category, idx) )
         return self.categories_ #.items()
 
-    def loss(self, y_true, y_pred):
+    def loss(self, y_true, y_pred, X=None):
         """calculate current loss in terms of multicalibration or PMC"""
         alpha = 0.0
         worst = None 
@@ -132,6 +133,7 @@ class Auditor():
             category_loss = np.abs(y_true.iloc[idx].mean() 
                                    - y_pred.iloc[idx].mean()
                                   )
+            # print(c,len(idx),category_loss)
             if self.metric=='PMC': 
 
                 category_loss /= max(y_true.iloc[idx].sum()/len(y_true),
@@ -139,6 +141,6 @@ class Auditor():
             if  category_loss > alpha:
                 alpha = category_loss
                 worst = (c, idx)
-        # print('worst category:',c,'size:',len(idx),'loss:',alpha)
-        return alpha, c
+        # print('worst category:',worst[0],'size:',len(worst[1]),'loss:',alpha)
+        return alpha, worst[0]
 
