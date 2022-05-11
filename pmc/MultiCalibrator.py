@@ -17,9 +17,9 @@ from copy import copy
 # from utils import squash_array, squash_series
 import utils
 import logging
-# logging.basicConfig(format='%(asctime)s %(message)s',
-#                     datefmt='%m/%d/%Y %I:%M:%S %p',
-#                    )
+logging.basicConfig(format='%(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                   )
 logger = logging.getLogger(__name__)
 
 class MultiCalibrator(ClassifierMixin, BaseEstimator):
@@ -59,7 +59,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
     """
     def __init__(self, 
                  estimator=None,
-                 auditor=None,
+                 auditor_type=None,
                  metric='PMC',
                  alpha=0.01,
                  n_bins=10,
@@ -68,10 +68,11 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                  eta=1.0,
                  max_iters=100,
                  random_state=0,
-                 verbosity=0
+                 verbosity=0,
+                 iter_sample=None
                 ):
         self.estimator=estimator
-        self.auditor_type=auditor
+        self.auditor_type=auditor_type
         self.metric=metric
         self.alpha=alpha
         self.n_bins=n_bins
@@ -81,6 +82,12 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         self.max_iters=max_iters
         self.random_state=random_state
         self.verbosity=verbosity
+        self.iter_sample=iter_sample
+
+    def __name__(self):
+        if self.metric=='PMC':
+            return 'Proportional Multicalibrator'
+        return 'MultiCalibrator' 
 
     def fit(self, X, y):
         """A reference implementation of a fitting function for a classifier.
@@ -109,9 +116,9 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         self.classes_ = unique_labels(y)
         assert len(self.classes_) == 2, "Only binary classification supported"
 
-        y_true = y.astype(float)
         self.X_ = X
-        self.y_ = y_true
+        self.y_ = y.astype(float)
+        # self.y_ = y_true
 
         assert hasattr(self.estimator, 'predict_proba'), ("Classifier has no"
                                                     "'predict_proba' method")
@@ -129,7 +136,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         y_init = self.estimator.predict_proba(X)[:,1]
         y_init = pd.Series(y_init, index=X.index)
         y_adjusted = copy(y_init)
-        MSE = mse(y_true, y_init)
+        MSE = mse(self.y_, y_init)
         print('initial MSE:', MSE)
         log = dict(
             iteration=[],
@@ -145,36 +152,45 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         # bootstrap sample X,y
         bootstraps = 0
         worst_cat = None
-        Xs, ys = X, y_true
+        Xs, ys = X, self.y_
         # while iters < self.max_iters and updated == True:
         init_cal_loss, _, _ = self.auditor_.loss(
-                                                 y_true, 
+                                                 self.y_, 
                                                  y_adjusted,
                                                  X
                                                 )
-        # prev_cal_loss = init_cal_loss
-        progress_bar = tqdm(total=100, unit='%')
+        # p_cal_loss = init_cal_loss
+        # progress_bar = tqdm(total=100, unit='%')
         for i in range(self.max_iters):
-            # Xs, ys, ys_pred = X, y_true, y_adjusted
-            ys_pred = y_adjusted.copy()
-            Xs = X.copy()
+            if self.iter_sample == 'bootstrap':
+                Xs, ys, ys_pred = resample(X, self.y_, y_adjusted,
+                                           random_state=self.random_state
+                                          )
+            else:
+                Xs, ys, ys_pred = X, self.y_, y_adjusted
+                # ys_pred = y_adjusted.copy()
+                # Xs = X.copy()
 
-            MSE = mse(y_true, y_adjusted)
-            cal_loss, prev_worst_c, prev_worst_idx, cats =  \
+            # categories = self.auditor_.make_categories(Xs, ys_pred)
+            # MSE = mse(self.y_, y_adjusted)
+            MSE = mse(ys, ys_pred)
+            cal_loss, p_worst_c, p_worst_idx, cats =  \
                     self.auditor_.loss(ys, ys_pred, Xs, return_cat=True)
+                    # self.auditor_.loss(y, y_adjusted, X, return_cat=True)
 
-            progress_bar.set_description(
-                                         f'updates:{n_updates}, '
-                                         f'{self.metric}:{cal_loss:.3f}, '
-                                         f'MSE:{MSE:.3f} '
-                                        )
-            # Xs, ys, ys_pred = resample(X, y_true, y_adjusted,
-            #                   stratify=y_true, 
-            #                   random_state=self.random_state
-            #                  )
+            logger.info(
+                        f'updates:{n_updates}, '
+                        f'{self.metric}:{cal_loss:.3f}, '
+                        f'MSE:{MSE:.3f} '
+            )
+            # progress_bar.set_description(
+            #                              f'updates:{n_updates}, '
+            #                              f'{self.metric}:{cal_loss:.3f}, '
+            #                              f'MSE:{MSE:.3f} '
+            #                             )
             # print('----------------',iters,'-------------------')
             # print('initial worst category from auditor:',
-            #       prev_worst_c, 'alpha = ', prev_cal_loss)
+            #       p_worst_c, 'alpha = ', p_cal_loss)
             bootstraps +=1 
             # print(f'ys balance: {ys.sum()/len(ys)}')
             updated=False
@@ -186,15 +202,18 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             #     ys_pred = pd.Series(self.predict_proba(Xs)[:,1],
             #                         index=Xs.index)
             categories = self.auditor_.categorize(Xs, ys_pred)
-            assert utils.category_diff(categories, cats), ("categories don't"
-                                                           "match")
+            if self.iter_sample== None:
+                assert utils.category_diff(categories, cats), \
+                        "categories don't match"
 
-            assert prev_worst_c in categories.keys()
+                assert p_worst_c in categories.keys()
 
             Mworst_delta = 0
             pmc_adjust = 1
 
-            for category, idx in tqdm(categories.items(), leave=False):
+            for category, idx in tqdm(categories.items(), 
+                                      desc='updating categories', 
+                                      leave=False):
                 # calc average predicted risk for the group
                 rbar = ys_pred.loc[idx].mean()
                 # calc actual average risk for the group
@@ -255,44 +274,60 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 iters += 1
                 if iters >= self.max_iters: 
                     print('max iters reached')
-                    logger.warn('max_iters was reached before alpha termination'
-                                ' criterion was satisfied.')
                     break
 
             y_adjusted = utils.squash_series(y_adjusted)
             assert y_adjusted.max() <= 1.0 and y_adjusted.min() >= 0.0
-            # MSE = mse(y_true, y_adjusted)
-            # prev_cal_loss, prev_worst_c, prev_worst_idx =  self.auditor_.loss(y_true, y_unadjusted, X)
+
+            # MSE = mse(self.y_, y_adjusted)
+            # p_cal_loss, p_worst_c, p_worst_idx =  self.auditor_.loss(self.y_, y_unadjusted, X)
             new_cal_loss, worst_c, worst_idx = self.auditor_.loss(
-                                                     y_true, 
-                                                     y_adjusted,
-                                                     X
+                                                     ys, 
+                                                     ys_pred,
+                                                     Xs
+                                                     # self.y_, 
+                                                     # y_adjusted,
+                                                     # X
                                                     )
             logger.debug(f'worst category from multicalibrator: '
                          f'{Mworst_c}, alpha = {Mworst_delta}')
             logger.debug(f'worst category from auditor: '
                          f'{worst_c}, alpha = {new_cal_loss}')
             # ipdb.set_trace()
-            if not updated:
-                print('no updates this round')
+            if iters >= self.max_iters: 
+                logger.warn('max_iters was reached before alpha termination'
+                            ' criterion was satisfied.')
+                break
+
+            if self.iter_sample=='bootstrap' and not updated:
+                total_cal_loss, _, _ = self.auditor_.loss(
+                                                     self.y_, 
+                                                     y_adjusted,
+                                                     X
+                                                    )
+                if total_cal_loss < self.alpha:
+                    # progress_bar.close()
+                    break
+            elif not updated:
+                # progress_bar.close()
+                logger.info('no updates this round. breaking')
                 break
             else:
                 cal_diff = cal_loss - new_cal_loss
-                # if cal_diff < 0:
+                # if 1 - cal_diff/init_cal_loss > 0:
                 #     ipdb.set_trace()
-                progress_bar.update(round(100*cal_diff/init_cal_loss))
+                # progress_bar.update(100*cal_diff/init_cal_loss)
         ## end for loop
+        # progress_bar.close()
         ######################################## 
         print('finished. updates:', n_updates)
         y_end = pd.Series(self.predict_proba(X)[:,1], index=X.index)
-        print('mse:',mse(y_adjusted, y_end))
-        print('r2:',r2_score(y_adjusted, y_end))
-        # assert np.equal(y_adjusted.values.round(5), y_end.round(5) ).all()
         np.testing.assert_allclose(y_adjusted, y_end, rtol=1e-04)
-        init_MC = self.auditor_.loss(y_true, y_init,X, metric='MC')[0]
-        final_MC = self.auditor_.loss(y_true, y_end,X, metric='MC')[0]
-        init_PMC = self.auditor_.loss(y_true, y_init,X, metric='PMC')[0]
-        final_PMC = self.auditor_.loss(y_true, y_end,X, metric='PMC')[0]
+
+        init_MC = self.auditor_.loss(self.y_, y_init,X, metric='MC')[0]
+        final_MC = self.auditor_.loss(self.y_, y_end,X, metric='MC')[0]
+        init_PMC = self.auditor_.loss(self.y_, y_init,X, metric='PMC')[0]
+        final_PMC = self.auditor_.loss(self.y_, y_end,X, metric='PMC')[0]
         print(f'initial multicalibration: {init_MC}')
         print(f'final multicalibration: {final_MC}')
         print(f'initial proportional multicalibration: {init_PMC}')
@@ -334,7 +369,14 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         
 
         for adjust_iter in self.adjustments_:
-            categories = self.auditor_.categorize(X, y_pred)
+            if self.iter_sample == 'bootstrap':
+                Xs, ys_pred = resample(X, y_pred,  
+                                  random_state=self.random_state
+                                 )
+            else:
+                Xs, ys_pred = X, y_pred
+
+            categories = self.auditor_.categorize(Xs, ys_pred)
             for category, update in adjust_iter.items(): 
                 if category in categories.keys():
                     idx = categories[category]

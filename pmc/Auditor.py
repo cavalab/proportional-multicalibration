@@ -37,6 +37,7 @@ class Auditor():
                  groups=None,
                  alpha=0.01,
                  n_bins=10,
+                 bins=None,
                  gamma=0.1,
                  rho=0.1,
                  metric=None,
@@ -46,6 +47,7 @@ class Auditor():
         self.groups = groups
         self.alpha=alpha
         self.n_bins=n_bins
+        self.bins=bins
         self.gamma=gamma
         self.rho=rho
         self.metric=metric
@@ -61,10 +63,10 @@ class Auditor():
 
         categories = df.groupby(self.grouping_).groups
         # categories = df.groupby(self.grouping_, sort=False).groups
+        min_size = self.gamma*self.alpha*len(X)/self.n_bins_
 
-        # min_size = self.gamma*self.alpha*len(X)/self.n_bins
         categories = {k:v for k,v in categories.items() 
-                      if len(v) > self.min_size_
+                      if len(v) > min_size
                      } 
 
         return categories
@@ -82,25 +84,37 @@ class Auditor():
         """
         assert isinstance(X, pd.DataFrame), "X should be a dataframe"
         self.N_ = len(X)
-        # bins = [(i,i+1) for i in np.linspace(0.0,1.0, self.n_bins)[:-1]]
-        # bins = np.linspace(0.0+1/self.n_bins,1.0, self.n_bins)
-        # print('bins:',bins)
 
         self.categories_ = None 
         # df = X.copy()
-        interval, bins = pd.cut(y, self.n_bins, include_lowest=True, 
-                                retbins=True)
+
+        if self.bins is None:
+            self.n_bins_ = self.n_bins
+            self.bins_ = np.linspace(1/self.n_bins, 1.0, self.n_bins)
+            self.bins_ = np.insert(self.bins_, 0, 0.0)
+        else:
+            self.bins_ = self.bins
+            if self.bins_[0] > 0.0:
+                self.bins_[0] = 0.0
+                self.bins_ = np.insert(self.bins_, 0, 0.0)
+            if self.bins_[-1] < 1.0:
+                self.bins_ = np.concatenate((self.bins_, 1.0))
+            self.n_bins_ = len(self.bins_)-1
+
+
+        print('self.bins_:',self.bins_)
+        # interval, retbins = pd.cut(y, self.bins_, include_lowest=True, 
+        #                         retbins=True)
         # interval, bins = pd.cut(y, bins, include_lowest=True, retbins=True)
-        self.bins_ = bins
-        self.bins_[0] = 0.0
-        self.bins_[-1] = 1.0
-        print('bins:',self.bins_)
+        # self.bins_ = bins
+        # self.bins_[0] = 0.0
+        # self.bins_[-1] = 1.0
         self.grouping_ = self.groups+['interval']
-        self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins
+        # self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins_
 
         self.categories_ = self.categorize(X,y)
 
-        print('min_size:',self.min_size_)
+        # print('min_size:',self.min_size_)
 
         return self.categories_ 
 
@@ -110,7 +124,6 @@ class Auditor():
         metric = self.metric if metric == None else metric
         alpha = 0.0
         worst = None 
-        # min_size = self.gamma*self.alpha*self.N_/self.n_bins
         categories = self.categorize(X, y_pred)
 
         for c, idx in categories.items():
