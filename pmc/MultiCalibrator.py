@@ -207,14 +207,12 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                 delta = ybar - rbar
                 
                 # set alpha 
+                alpha = self.alpha  
                 if self.metric=='PMC':
-                    alpha = self.alpha*pmc_adjust
-                else:
-                    alpha = self.alpha  
+                    alpha *= pmc_adjust
 
                 logger.debug(
                       f'category:{category}, '
-                      # f'prediction: {r:3f}',
                       f'rbar:{rbar:3f}, '
                       f'ybar:{ybar:3f}, '
                       f'delta:{delta:3f}, '
@@ -238,8 +236,6 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     # update estimates 
                     y_unadjusted = y_adjusted.copy()
                     y_adjusted.loc[idx] += update
-                    # squashed_update = (y_adjusted.loc[idx].mean() 
-                    #                    - y_unadjusted.loc[idx].mean() )
 
                     if updated == False:
                         self.adjustments_.append({})
@@ -252,10 +248,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     # make sure update was good
                     rnew = y_adjusted.loc[idx]
                     rbarnew = rnew.mean()
-                    # if ( np.abs(ybar1 - rbar1) >= np.abs(ybar-rbar) ):
-                    #     ipdb.set_trace()
-                    # new_pred = pd.Series(self.predict_proba(X)[:,1],
-                    #                      index=X.index)
+
                     assert not any(y_adjusted.isna())
 
                     # cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
