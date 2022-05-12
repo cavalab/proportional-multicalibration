@@ -1,5 +1,4 @@
 import xgboost
-import numpy as np
 
 hyper_params = [
     {
@@ -11,7 +10,3 @@ hyper_params = [
 ]
 
 est=xgboost.XGBClassifier(max_depth=6, eval_metric='logloss')
-
-def complexity(est):
-    return np.sum([m.count(':') for m in est._Booster.get_dump()])
-model = None

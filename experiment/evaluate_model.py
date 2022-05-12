@@ -3,8 +3,8 @@ import ipdb
 import itertools
 import pandas as pd
 from sklearn.base import clone
-from sklearn.experimental import enable_halving_search_cv # noqa
-from sklearn.model_selection import HalvingGridSearchCV
+# from sklearn.experimental import enable_halving_search_cv # noqa
+# from sklearn.model_selection import HalvingGridSearchCV
 from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (roc_auc_score, accuracy_score,
@@ -21,11 +21,10 @@ import json
 import os
 import inspect
 from util import jsonify
-
 def evaluate_model(dataset, results_path, random_state, est_name, est, 
                    hyper_params, complexity, model,  n_splits = 5,
-                   n_samples=0, scale_x = True, 
-                   pre_train=None, skip_tuning=False):
+                   n_samples=0, scale_x = True, groups = ['ethnicity','gender'],
+                   pre_train=None):
 
     print(40*'=','Evaluating '+est_name+' on ',dataset,40*'=',sep='\n')
 
@@ -73,34 +72,19 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
     print('X_train:',X_train_scaled.shape)
     print('y_train:',y_train.shape)
     
-    ################################################## 
-    # define CV strategy for hyperparam tuning
-    ################################################## 
-    # define a test mode with fewer splits, no hyper_params, and few iterations
-
-    if skip_tuning:
-        print('skipping tuning')
-        grid_est = clone(est)
-    else:
-        cv = KFold(n_splits=n_splits, shuffle=True,random_state=random_state)
-
-        grid_est = HalvingGridSearchCV(est,cv=cv, param_grid=hyper_params,
-                verbose=2, n_jobs=1, scoring='roc_auc')
 
     ################################################## 
     # Fit models
     ################################################## 
-    print('training',grid_est)
+    print('training',est)
     t0p = time.process_time()
     t0t = time.time()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        grid_est.fit(X_train_scaled, y_train)
+        est.fit(X_train_scaled, y_train)
     process_time = time.process_time() - t0p
     time_time = time.time() - t0t
     print('Training time measures:',process_time, time_time)
-    best_est = grid_est if skip_tuning else grid_est.best_estimator_
-    # best_est = grid_est
     
     ##################################################
     # store results
@@ -116,15 +100,15 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
         'time_time': time_time, 
     }
 
+    ##############################
     # scores
-    pred = grid_est.predict
-
+    ##############################
     for fold, target, X in zip(['train','test'],
                                [y_train, y_test], 
                                [X_train_scaled, X_test_scaled]
                               ):
-            y_pred = grid_est.predict(X).reshape(-1,1)
-            y_pred_proba = grid_est.predict_proba(X)[:,1]
+            y_pred = est.predict(X).reshape(-1,1)
+            y_pred_proba = est.predict_proba(X)[:,1]
             for score, scorer in [('roc_auc',roc_auc_score),
                                   ('auprc',average_precision_score)]:
                 # ipdb.set_trace()
@@ -136,10 +120,9 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
             
             y_pred_proba = pd.Series(y_pred_proba, index=target.index)
             X = X.set_index(target.index)
-            # ipdb.set_trace()
             results['MC_loss_' + fold] = MC_loss(target, y_pred_proba, 
                                                  X=X, 
-                                                 groups=['ethnicity','gender'],
+                                                 groups=GROUPS,
                                                  n_bins=10,
                                                  # bins=None,
                                                  # return_cat=False, 
@@ -149,13 +132,30 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
                                                  rho=0.01
                                                 )
             print('MC_loss_' + fold,results['MC_loss_' + fold])
+            results['PMC_loss_' + fold] = MC_loss(target, y_pred_proba, 
+                                                 X=X, 
+                                                 groups=GROUPS,
+                                                 n_bins=10,
+                                                 # bins=None,
+                                                 # return_cat=False, 
+                                                 proportional=True,
+                                                 alpha=0.01,
+                                                 gamma=0.1,
+                                                 rho=0.01
+                                                )
+            print('PMC_loss_' + fold,results['MC_loss_' + fold])
+            # TODO: add differential fairness loss
+
     
-    print('feature importances:')
-    for fn,imp in zip(X_train.columns, grid_est.feature_importances_):
-        print(fn,imp)
-    ##################################################
+    if hasattr(est, 'feature_importances_'):
+        results['feature_importances_'] = \
+                {fn:imp 
+                 for fn,imp in zip(X_train.columns, est.feature_importances_)}
+        print('feature importances:',results['feature_importances_'])
+
+    ##############################
     # write to file
-    ##################################################
+    ##############################
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
@@ -203,8 +203,8 @@ if __name__ == '__main__':
                         default=5, type=int, help='Number of Split for Cross Validation')
     # parser.add_argument('-test',action='store_true', dest='TEST', 
     #                    help='Used for testing a minimal version')
-    parser.add_argument('-skip_tuning',action='store_true', dest='SKIP_TUNE', 
-                        default=False, help='Dont tune the estimator')
+    # parser.add_argument('-skip_tuning',action='store_true', dest='SKIP_TUNE', 
+    #                     default=False, help='Dont tune the estimator')
 
     args = parser.parse_args()
     # import algorithm 
@@ -226,8 +226,8 @@ if __name__ == '__main__':
         eval_kwargs = algorithm.eval_kwargs
 
     # check for conflicts btw cmd line args and eval_kwargs
-    if args.SKIP_TUNE:
-        eval_kwargs['skip_tuning'] = True
+    # if args.SKIP_TUNE:
+    #     eval_kwargs['skip_tuning'] = True
 
     evaluate_model(args.INPUT_FILE, args.RDIR, args.RANDOM_STATE, args.ALG,
                    algorithm.est, algorithm.hyper_params, algorithm.complexity,
