@@ -135,7 +135,7 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
                 print(score + '_' + fold,scorer(target, y_pred) )
             
             y_pred_proba = pd.Series(y_pred_proba, index=target.index)
-            X.set_index(target.index)
+            X = X.set_index(target.index)
             # ipdb.set_trace()
             results['MC_loss_' + fold] = MC_loss(target, y_pred_proba, 
                                                  X=X, 
@@ -148,8 +148,9 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
                                                  gamma=0.1,
                                                  rho=0.01
                                                 )
+            print('MC_loss_' + fold,results['MC_loss_' + fold])
     
-    # print(grid_est.get_fscore()) 
+    print('feature importances:')
     for fn,imp in zip(X_train.columns, grid_est.feature_importances_):
         print(fn,imp)
     ##################################################
