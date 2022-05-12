@@ -9,6 +9,7 @@ import argparse
 import importlib
 import sys
 import warnings
+from sklearn.feature_extraction.text import CountVectorizer
 warnings.filterwarnings("ignore")
 
 def process_adm(data):
@@ -106,8 +107,14 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
     return x
 
 # Not exactly sure what to do for now
-def clean_text(chief_complaint):
-    return None
+def clean_text(df):
+    df['chiefcomplaint'] = df['chiefcomplaint'].fillna('.')
+    vectorizer = CountVectorizer(strip_accents='ascii',stop_words='english',max_features=100)
+
+    X = vectorizer.fit_transform(df["chiefcomplaint"])
+    df[vectorizer.get_feature_names_out()] = X.toarray()
+    # df = df.drop('chiefcomplaint',axis = 1)
+    return df
 
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
