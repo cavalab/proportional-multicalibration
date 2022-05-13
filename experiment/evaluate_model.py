@@ -257,13 +257,14 @@ if __name__ == '__main__':
     # parse command line arguments
     parser = argparse.ArgumentParser(
         description="Evaluate a method on a dataset.", add_help=False)
-    parser.add_argument('INPUT_FILE', type=str,
+    parser.add_argument('INPUT_FILE', action='store', type=str,
+                        default='data/mimic4_admissions.csv',
                         help='Data file to analyze; ensure that the '
                         'target/label column is labeled as "y". '
                         'If you use the preprocessing file, you do not need to do anything')    
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
-    parser.add_argument('-ml', action='store', default=None,type=str, 
+    parser.add_argument('-ml', action='store', default='xgb',type=str, 
             help='Name of estimator (with matching file in ml/)')
     parser.add_argument('-results_path', action='store', dest='RDIR',
                         default='results', type=str, 

@@ -3,7 +3,14 @@ import pandas as pd
 from .params import groups as GROUPS
 from tqdm import tqdm
 import logging
+import itertools as it
 logger = logging.getLogger(__name__)
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = it.tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 def categorize(X, y, groups,
                n_bins=10,
@@ -130,18 +137,19 @@ def differential_calibration(
     logger.info(f'# categories: {len(categories)}')
     dc_max = 0
     logger.info("calcating pairwise differential calibration...")
-    for ci, i in categories.items():
-        for cj, j in categories.items():
-            if ci==cj: 
-                continue
+    for (ci,i),(cj,j) in pairwise(categories.items()):
+    # for ci, i in categories.items():
+    #     for cj, j in categories.items():
+    #         if ci==cj: 
+    #             continue
 
-            yi = max(y_true.loc[i].mean(), rho)
-            yj = max(y_true.loc[j].mean(), rho)
+        yi = max(y_true.loc[i].mean(), rho)
+        yj = max(y_true.loc[j].mean(), rho)
 
-            dc = np.abs( np.log(yi) - np.log(yj) )
+        dc = np.abs( np.log(yi) - np.log(yj) )
 
-            if dc > dc_max:
-                dc_max = dc
+        if dc > dc_max:
+            dc_max = dc
 
     return dc_max
 
