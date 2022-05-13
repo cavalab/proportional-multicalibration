@@ -46,33 +46,44 @@ def evaluate_model(
 ):
     """Main evaluation routine."""
 
+    ########################################
+    # configure estimators
+    ########################################
+    setatts = {
+        'random_state':random_state, 
+        'alpha':alpha,
+        'n_bins':n_bins,
+        'gamma':gamma,
+        'rho':rho,
+    }
     np.random.seed(random_state)
-    if hasattr(est, 'random_state'):
-        est.random_state = random_state
-    if hasattr(est, 'n_jobs'):
-        est.n_jobs = 1
+    for k,v in setatts.items():
+        if hasattr(est, k):
+            setattr(est, k, v)
+    # if hasattr(est, 'n_jobs'):
+    #     est.n_jobs = 1
     if groups is not None:
         if hasattr(est, 'auditor_type'):
             est.auditor_type = Auditor(groups=groups)
-    if 'pmc' in ml and hasattr(est, 'scoring'):
-        est.scoring = (lambda est,x,y:
-                  proportional_multicalibration_score(
-                      est,x,y,
-                      alpha=alpha,
-                      n_bins=n_bins,
-                      gamma=gamma,
-                      rho=rho
-                  )
-                 )
-    elif 'mc' in ml and hasattr(est, 'scoring'):
-        est.scoring = (lambda est,x,y:
-                  multicalibration_score(
-                      est,x,y,
-                      alpha=alpha,
-                      n_bins=n_bins,
-                      gamma=gamma
-                  )
-                 )
+    # if 'pmc' in ml and hasattr(est, 'scoring'):
+    #     est.scoring = (lambda est,x,y:
+    #               proportional_multicalibration_score(
+    #                   est,x,y,
+    #                   alpha=alpha,
+    #                   n_bins=n_bins,
+    #                   gamma=gamma,
+    #                   rho=rho
+    #               )
+    #              )
+    # elif 'mc' in ml and hasattr(est, 'scoring'):
+    #     est.scoring = (lambda est,x,y:
+    #               multicalibration_score(
+    #                   est,x,y,
+    #                   alpha=alpha,
+    #                   n_bins=n_bins,
+    #                   gamma=gamma
+    #               )
+    #              )
     # attrs = hasattranywhere(est, 'auditor_type')
     # for a in attrs: 
     #     setattr(est,a,Auditor(groups=groups))
@@ -277,7 +288,6 @@ if __name__ == '__main__':
                         help='Number of bins to consider for calibration')
     parser.add_argument('-gamma', action='store', default=0.05, type=float, 
                         help='Min subpop prevalence (for metrics)')
-
     parser.add_argument('-rho', action='store', default=0.1, type=float, 
                         help='Min subpop prevalence (for metrics)')
     args = parser.parse_args()
