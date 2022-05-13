@@ -24,8 +24,11 @@ from util import jsonify, hasattranywhere
 from ml.pmc.auditor import Auditor
 from ml.pmc.params import groups
 from ml.pmc.metrics import (differential_calibration, 
+                            multicalibration_score,
+                            proportional_multicalibration_score,
                             multicalibration_loss,
-                            proportional_multicalibration_loss)
+                            proportional_multicalibration_loss,
+                           )
 RHO = 0.1
 
 def evaluate_model(
@@ -44,17 +47,35 @@ def evaluate_model(
 ):
     """Main evaluation routine."""
 
-    print(40*'=','Evaluating '+ml+' on ',dataset,40*'=',sep='\n')
-
     np.random.seed(random_state)
     if hasattr(est, 'random_state'):
         est.random_state = random_state
     if groups is not None:
         if hasattr(est, 'auditor_type'):
             est.auditor_type = Auditor(groups=groups)
+    if 'pmc' in ml and hasattr(est, 'scoring'):
+        est.scoring = (lambda est,x,y:
+                  proportional_multicalibration_score(
+                      est,x,y,
+                      alpha=alpha,
+                      n_bins=n_bins,
+                      gamma=gamma,
+                      rho=rho
+                  )
+                 )
+    elif 'mc' in ml and hasattr(est, 'scoring'):
+        est.scoring = (lambda est,x,y:
+                  multicalibration_score(
+                      est,x,y,
+                      alpha=alpha,
+                      n_bins=n_bins,
+                      gamma=gamma
+                  )
+                 )
     # attrs = hasattranywhere(est, 'auditor_type')
     # for a in attrs: 
     #     setattr(est,a,Auditor(groups=groups))
+    print(40*'=','Evaluating '+ml+' on ',dataset,40*'=',sep='\n')
 
     ##################################################
     # setup data
@@ -184,7 +205,8 @@ def evaluate_model(
                 groups=groups,
                 n_bins=n_bins,
                 alpha=alpha,
-                gamma=gamma
+                gamma=gamma,
+                rho=rho
             )
             print('DC_loss_' + fold,
                   f"{results['DC_loss_' + fold]:.3f}")
@@ -249,7 +271,7 @@ if __name__ == '__main__':
                         default=42, type=int, help='Seed / trial')
     parser.add_argument('-alpha', action='store', default=0.01, type=float, 
                         help='Calibration tolerance (for metrics)')
-    parser.add_argument('-n_bins', action='store', default=10, type=float, 
+    parser.add_argument('-n_bins', action='store', default=10, type=int, 
                         help='Number of bins to consider for calibration')
     parser.add_argument('-gamma', action='store', default=0.05, type=float, 
                         help='Min subpop prevalence (for metrics)')

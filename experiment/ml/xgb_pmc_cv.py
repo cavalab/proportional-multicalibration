@@ -1,11 +1,16 @@
 from .xgb_pmc import est as base_est
 from .xgb_pmc import hyper_params
-from .cv.halving import CV,params
-from .pmc.metrics import proportional_multicalibration_loss
+from .cv.randhalving import CV,params
+from .pmc.metrics import proportional_multicalibration_score
+from sklearn.metrics import make_scorer
+
+base_est.verbosity=0
 
 est = CV(base_est,
-         param_grid=hyper_params,
+         param_distributions=hyper_params,
          **params,
-         scoring=make_scorer(proportional_multicalibration_loss,
-                             greater_is_better=False)
+         resource='max_iters',
+         min_resources=10,
+         max_resources=100,
+         scoring=proportional_multicalibration_score,
         )

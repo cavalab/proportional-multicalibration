@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 from .params import groups as GROUPS
+from tqdm import tqdm
+import logging
+logger = logging.getLogger(__name__)
 
 def categorize(X, y, groups,
                n_bins=10,
@@ -14,7 +17,7 @@ def categorize(X, y, groups,
     categories = None 
 
     if bins is None:
-        bins = np.linspace(1/n_bins, 1.0, n_bins)
+        bins = np.linspace(float(1.0/n_bins), 1.0, n_bins)
         bins[0] = 0.0
     else:
         n_bins=len(bins)
@@ -34,6 +37,7 @@ def categorize(X, y, groups,
                  } 
     
     return categories
+
 
 
 def multicalibration_loss(
@@ -85,9 +89,14 @@ def multicalibration_loss(
 
     return loss
 
+def multicalibration_score(estimator, X, y_true, **kwargs):
+    return -multicalibation_loss(estimator, X, y_true, **kwargs)
+
 def proportional_multicalibration_loss(estimator, X, y_true, **kwargs):
     kwargs['proportional'] = True
     return multicalibration_loss(estimator, X, y_true, **kwargs)
+def proportional_multicalibration_score(estimator, X, y_true, **kwargs):
+    return -proportional_multicalibration_loss(estimator, X, y_true, **kwargs)
 
 def differential_calibration(
     estimator, 
@@ -99,7 +108,7 @@ def differential_calibration(
     categories=None,
     alpha=0.01,
     gamma=0.1,
-    eps=0.01
+    rho=0.01
 ):
     """Return the differential calibration of estimator on groups."""
 
@@ -118,14 +127,16 @@ def differential_calibration(
                                 alpha=alpha, 
                                 gamma=gamma
                                )
+    logger.info(f'# categories: {len(categories)}')
     dc_max = 0
+    logger.info("calcating pairwise differential calibration...")
     for ci, i in categories.items():
         for cj, j in categories.items():
             if ci==cj: 
                 continue
 
-            yi = y_true.loc[idx].mean()
-            yj = y_true.loc[idx].mean()+eps
+            yi = max(y_true.loc[i].mean(), rho)
+            yj = max(y_true.loc[j].mean(), rho)
 
             dc = np.abs( np.log(yi) - np.log(yj) )
 

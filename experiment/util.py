@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import logging
+logger = logging.getLogger(__name__)
 
 def jsonify(d):
     """recursively formats dicts for json serialization"""
@@ -28,12 +30,14 @@ def jsonify(d):
             tmp = d.__name__
         else:
             tmp = type(d).__name__
-        obj = {tmp:{}}
+        obj = {'object':tmp,
+               'vars':{}
+              }
         for k,v in vars(d).items():
-            obj[tmp][k] = jsonify(v)
+            obj['vars'][k] = jsonify(v)
         return obj
     elif not isinstance(d, str):
-        print("WARNING: attempting to store ",d,"as a str for json")
+        logger.debug("attempting to store ",d,"as a str for json")
         return str(d)
     return d
 

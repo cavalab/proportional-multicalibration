@@ -106,7 +106,7 @@ class Auditor():
             self.n_bins_ = len(self.bins_)-1
 
 
-        print('self.bins_:',self.bins_)
+        logger.info(f'self.bins_: {self.bins_}')
         min_size = self.gamma*self.alpha*len(X)/self.n_bins_
         logger.info(f'category size limit: {round(min_size)}')
         # interval, retbins = pd.cut(y, self.bins_, include_lowest=True, 

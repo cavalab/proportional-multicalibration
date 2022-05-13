@@ -9,4 +9,8 @@ hyper_params = [
     },
 ]
 
-est=xgboost.XGBClassifier(max_depth=6, eval_metric='logloss')
+est=xgboost.XGBClassifier(
+    max_depth=6, 
+    eval_metric='logloss',
+    use_label_encoder=False
+)

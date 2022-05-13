@@ -35,7 +35,7 @@ def read_file(filename, label='y', one_hot_encode=False,
     #     X = input_data
 
     # X = X.values.astype(float)
-    y = input_data[label]
+    y = input_data[label].astype(int)
         # Note that feature name might not be the same as dataset, as we use
     # one-hot encoding here
     # assert(X.shape[1] == feature_names.shape[0])

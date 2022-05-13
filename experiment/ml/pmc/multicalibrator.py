@@ -158,7 +158,6 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         y_init = pd.Series(y_init, index=self.X_.index)
         y_adjusted = copy(y_init)
         MSE = mse(self.y_, y_init)
-        print('initial MSE:', MSE)
         log = dict(
             iteration=[],
             r=[],
@@ -169,7 +168,6 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         )
 
         categories = self.auditor_.make_categories(self.X_, y_init)
-        print(f'categories:{len(categories)}')
         # bootstrap sample self.X_,y
         bootstraps = 0
         worst_cat = None
@@ -235,10 +233,13 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
             Mworst_delta = 0
             pmc_adjust = 1
             smallest_cat = len(Xs)
-
-            for category, idx in tqdm(categories.items(), 
+            if self.verbosity > 0:
+                iterator = tqdm(categories.items(), 
                                       desc='updating categories', 
-                                      leave=False):
+                                      leave=False)
+            else:
+                iterator = categories.items()
+            for category, idx in iterator:
                 if len(idx) < smallest_cat:
                     smallest_cat = len(idx)
                 # calc average predicted risk for the group
@@ -300,7 +301,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
                     # cal_loss, worst_cat = self.auditor_.loss(ys, ys_pred)
                 iters += 1
                 if iters >= self.max_iters: 
-                    print('max iters reached')
+                    logger.info('max iters reached')
                     break
 
             y_adjusted = utils.squash_series(y_adjusted)
@@ -347,7 +348,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         ## end for loop
         # progress_bar.close()
         ######################################## 
-        print('finished. updates:', n_updates)
+        logger.info(f'finished. updates: {n_updates}')
         y_end = pd.Series(self.predict_proba(self.X_)[:,1], index=self.X_.index)
         np.testing.assert_allclose(y_adjusted, y_end, rtol=1e-04)
 
@@ -355,10 +356,10 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         final_MC = self.auditor_.loss(self.y_, y_end, self.X_, metric='MC')[0]
         init_PMC = self.auditor_.loss(self.y_, y_init, self.X_, metric='PMC')[0]
         final_PMC = self.auditor_.loss(self.y_, y_end, self.X_, metric='PMC')[0]
-        print(f'initial multicalibration: {init_MC:.3f}')
-        print(f'final multicalibration: {final_MC:.3f}')
-        print(f'initial proportional multicalibration: {init_PMC:.3f}')
-        print(f'final proportional multicalibration: {final_PMC:.3f}')
+        logger.info(f'initial multicalibration: {init_MC:.3f}')
+        logger.info(f'final multicalibration: {final_MC:.3f}')
+        logger.info(f'initial proportional multicalibration: {init_PMC:.3f}')
+        logger.info(f'final proportional multicalibration: {final_PMC:.3f}')
         # print('adjustments:',self.adjustments_)
 
         #     print(y_adjusted - y_end) 
