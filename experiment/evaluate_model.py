@@ -25,7 +25,7 @@ from util import jsonify
 def evaluate_model(dataset, results_path, random_state, est_name, est, 
                    hyper_params, complexity, model,  n_splits = 5,
                    n_samples=0, scale_x = True, 
-                   pre_train=None, skip_tuning=False):
+                   pre_train=None, skip_tuning=False,drop_na = False):
 
     print(40*'=','Evaluating '+est_name+' on ',dataset,40*'=',sep='\n')
 
@@ -36,7 +36,8 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
     ##################################################
     # setup data
     ##################################################
-    features, labels = read_file(dataset)
+    print(drop_na, 123)
+    features, labels = read_file(dataset,drop_na=drop_na)
     print('features:')
     print(features.head())
     print(features.shape)
@@ -149,10 +150,10 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
                                                  rho=0.01
                                                 )
             print('MC_loss_' + fold,results['MC_loss_' + fold])
-    
-    print('feature importances:')
-    for fn,imp in zip(X_train.columns, grid_est.feature_importances_):
-        print(fn,imp)
+    if(drop_na == False):
+        print('feature importances:')
+        for fn,imp in zip(X_train.columns, grid_est.feature_importances_):
+            print(fn,imp)
     ##################################################
     # write to file
     ##################################################
@@ -182,7 +183,7 @@ import argparse
 import importlib
 
 if __name__ == '__main__':
-
+    drop_na = False
     # parse command line arguments
     parser = argparse.ArgumentParser(
         description="Evaluate a method on a dataset.", add_help=False)
@@ -216,6 +217,9 @@ if __name__ == '__main__':
                                     )
 
     print('algorithm:',algorithm.est)
+    if(args.ALG != 'xgboost' or args.ALG != 'random_forest'):
+        drop_na = True
+        print('Drop Missing values for the estimator ' , algorithm.est)
     if 'hyper_params' not in dir(algorithm):
         algorithm.hyper_params = {}
     print('hyperparams:',algorithm.hyper_params)
@@ -231,5 +235,5 @@ if __name__ == '__main__':
 
     evaluate_model(args.INPUT_FILE, args.RDIR, args.RANDOM_STATE, args.ALG,
                    algorithm.est, algorithm.hyper_params, algorithm.complexity,
-                   algorithm.model, n_splits= args.NSPLIT,
+                   algorithm.model, n_splits= args.NSPLIT, drop_na = drop_na,
                    **eval_kwargs)

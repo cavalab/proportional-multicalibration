@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 
 def read_file(filename, label='y', one_hot_encode=False,
               drop_columns =
-              ['chiefcomplaint','admission_type','admission_location']):
+              ['chiefcomplaint','admission_type','admission_location'], drop_na = False):
     
     
     input_data = pd.read_csv(filename)
@@ -14,7 +14,14 @@ def read_file(filename, label='y', one_hot_encode=False,
     X = input_data.drop([label]+drop_columns,axis = 1)
     # feature_names = [x for x in input_data.columns.values if x != label]
     # feature_names = np.array(feature_names)
-
+    y = input_data[label]
+    if(drop_na):
+        print('Filling NA')
+        X = input_data.drop(drop_columns,axis = 1)
+        X = X.fillna(X.mode().iloc[0])
+        y = X[label]
+        X = X.drop(label,axis=1)
+    
     # X = pd.get_dummies(input_data)
     # ipdb.set_trace()
     encodings={}
@@ -35,7 +42,7 @@ def read_file(filename, label='y', one_hot_encode=False,
     #     X = input_data
 
     # X = X.values.astype(float)
-    y = input_data[label]
+    
         # Note that feature name might not be the same as dataset, as we use
     # one-hot encoding here
     # assert(X.shape[1] == feature_names.shape[0])
