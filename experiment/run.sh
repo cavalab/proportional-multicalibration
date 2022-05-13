@@ -42,7 +42,7 @@ for s in ${seeds[@]} ; do
             -n_bins $n_bins \
             -rho $rho \
             -results_path $rdir \
-            > "$rdir/$m_$s_alpha=$alpha_gamma=$gamma_n_bins=$n_bins_rho=$rho.log" \
+            > "${rdir}/${m}_${s}_alpha\=${alpha}_gamma\=${gamma}_n_bins\=${n_bins}_rho\=${rho}.log \
             &
     done
 done

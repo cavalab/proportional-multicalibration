@@ -49,6 +49,8 @@ def evaluate_model(
     np.random.seed(random_state)
     if hasattr(est, 'random_state'):
         est.random_state = random_state
+    if hasattr(est, 'n_jobs'):
+        est.n_jobs = 1
     if groups is not None:
         if hasattr(est, 'auditor_type'):
             est.auditor_type = Auditor(groups=groups)
