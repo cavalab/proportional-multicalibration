@@ -9,7 +9,7 @@ from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (roc_auc_score, accuracy_score,
                              average_precision_score)
-from methods.pmc.utils import MC_loss
+# from ml.pmc.utils import MC_loss
 import warnings
 import time
 from tempfile import mkdtemp
@@ -20,17 +20,41 @@ import numpy as np
 import json
 import os
 import inspect
-from util import jsonify
-def evaluate_model(dataset, results_path, random_state, est_name, est, 
-                   hyper_params, complexity, model,  n_splits = 5,
-                   n_samples=0, scale_x = True, groups = ['ethnicity','gender'],
-                   pre_train=None):
+from util import jsonify, hasattranywhere
+from ml.pmc.auditor import Auditor
+from ml.pmc.params import groups
+from ml.pmc.metrics import (differential_calibration, 
+                            multicalibration_loss,
+                            proportional_multicalibration_loss)
+RHO = 0.1
 
-    print(40*'=','Evaluating '+est_name+' on ',dataset,40*'=',sep='\n')
+def evaluate_model(
+    dataset, 
+    results_path, 
+    random_state, 
+    ml, 
+    est, 
+    alpha,
+    n_bins,
+    gamma,
+    rho,
+    n_samples=0, 
+    scale_x = False, 
+    pre_train=None
+):
+    """Main evaluation routine."""
+
+    print(40*'=','Evaluating '+ml+' on ',dataset,40*'=',sep='\n')
 
     np.random.seed(random_state)
     if hasattr(est, 'random_state'):
         est.random_state = random_state
+    if groups is not None:
+        if hasattr(est, 'auditor_type'):
+            est.auditor_type = Auditor(groups=groups)
+    # attrs = hasattranywhere(est, 'auditor_type')
+    # for a in attrs: 
+    #     setattr(est,a,Auditor(groups=groups))
 
     ##################################################
     # setup data
@@ -43,7 +67,9 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
     X_train, X_test, y_train, y_test = train_test_split(features, labels,
                                                     train_size=0.75,
                                                     test_size=0.25,
-                                                    random_state=random_state)
+                                                    shuffle=True,
+                                                    random_state=random_state
+                                                    )                                                      
 
     # if dataset is large, subsample the training set 
     if n_samples > 0 and len(labels) > n_samples:
@@ -89,12 +115,11 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
     ##################################################
     # store results
     ##################################################
-    
     dataset_name = dataset.split('/')[-1].split('.')[0]
     results = {
         'dataset':dataset,
-        'algorithm':est_name,
-        'params':jsonify(best_est.get_params()),
+        'algorithm':ml,
+        'params':jsonify(est.get_params()),
         'random_state':random_state,
         'process_time': process_time, 
         'time_time': time_time, 
@@ -113,38 +138,57 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
                                   ('auprc',average_precision_score)]:
                 # ipdb.set_trace()
                 results[score + '_' + fold] = scorer(target, y_pred_proba) 
-                print(score + '_' + fold,scorer(target, y_pred_proba) )
+                print(score + '_' + fold,
+                      f'{scorer(target, y_pred_proba):.3f}')
             for score, scorer in [('accuracy',accuracy_score)]:
                 results[score + '_' + fold] = scorer(target, y_pred) 
-                print(score + '_' + fold,scorer(target, y_pred) )
+                print(score + '_' + fold,
+                      f'{scorer(target, y_pred):.3f}')
             
             y_pred_proba = pd.Series(y_pred_proba, index=target.index)
             X = X.set_index(target.index)
-            results['MC_loss_' + fold] = MC_loss(target, y_pred_proba, 
-                                                 X=X, 
-                                                 groups=GROUPS,
-                                                 n_bins=10,
-                                                 # bins=None,
-                                                 # return_cat=False, 
-                                                 proportional=False,
-                                                 alpha=0.01,
-                                                 gamma=0.1,
-                                                 rho=0.01
-                                                )
-            print('MC_loss_' + fold,results['MC_loss_' + fold])
-            results['PMC_loss_' + fold] = MC_loss(target, y_pred_proba, 
-                                                 X=X, 
-                                                 groups=GROUPS,
-                                                 n_bins=10,
-                                                 # bins=None,
-                                                 # return_cat=False, 
-                                                 proportional=True,
-                                                 alpha=0.01,
-                                                 gamma=0.1,
-                                                 rho=0.01
-                                                )
-            print('PMC_loss_' + fold,results['MC_loss_' + fold])
-            # TODO: add differential fairness loss
+            # MC
+            results['MC_loss_' + fold] = multicalibration_loss(
+                estimator=est,
+                X=X, 
+                y_true=target, 
+                groups=groups,
+                n_bins=n_bins,
+                proportional=False,
+                alpha=alpha,
+                gamma=gamma,
+                rho=rho
+            )
+            print('MC_loss_' + fold,
+                  f"{results['MC_loss_' + fold]:.3f}")
+            # PMC
+            results['PMC_loss_' + fold] = \
+                    proportional_multicalibration_loss(
+                estimator=est,
+                X=X, 
+                y_true=target, 
+                groups=groups,
+                n_bins=n_bins,
+                proportional=True,
+                alpha=alpha,
+                gamma=gamma,
+                rho=rho
+            )
+            print('PMC_loss_' + fold,
+                  f"{results['PMC_loss_' + fold]:.3f}")
+            # differential calibration loss
+            results['DC_loss_' + fold] = differential_calibration(
+                estimator=est,
+                y_true=target, 
+                X=X, 
+                groups=groups,
+                n_bins=n_bins,
+                alpha=alpha,
+                gamma=gamma
+            )
+            print('DC_loss_' + fold,
+                  f"{results['DC_loss_' + fold]:.3f}")
+
 
     
     if hasattr(est, 'feature_importances_'):
@@ -159,7 +203,7 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
-    save_file = (results_path + '/' + dataset_name + '_' + est_name + '_' 
+    save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
                  + str(random_state))
 
     print('save_file:',save_file)
@@ -180,8 +224,12 @@ def evaluate_model(dataset, results_path, random_state, est_name, est,
 ################################################################################
 import argparse
 import importlib
+import logging
+import sys
 
 if __name__ == '__main__':
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO) 
 
     # parse command line arguments
     parser = argparse.ArgumentParser(
@@ -192,33 +240,32 @@ if __name__ == '__main__':
                         'If you use the preprocessing file, you do not need to do anything')    
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
-    parser.add_argument('-ml', action='store', dest='ALG',default=None,type=str, 
-            help='Name of estimator (with matching file in methods/)')
+    parser.add_argument('-ml', action='store', default=None,type=str, 
+            help='Name of estimator (with matching file in ml/)')
     parser.add_argument('-results_path', action='store', dest='RDIR',
                         default='results', type=str, 
                         help='Name of save file')
     parser.add_argument('-seed', action='store', dest='RANDOM_STATE',
                         default=42, type=int, help='Seed / trial')
-    parser.add_argument('-split', action='store', dest='NSPLIT',
-                        default=5, type=int, help='Number of Split for Cross Validation')
-    # parser.add_argument('-test',action='store_true', dest='TEST', 
-    #                    help='Used for testing a minimal version')
-    # parser.add_argument('-skip_tuning',action='store_true', dest='SKIP_TUNE', 
-    #                     default=False, help='Dont tune the estimator')
+    parser.add_argument('-alpha', action='store', default=0.01, type=float, 
+                        help='Calibration tolerance (for metrics)')
+    parser.add_argument('-n_bins', action='store', default=10, type=float, 
+                        help='Number of bins to consider for calibration')
+    parser.add_argument('-gamma', action='store', default=0.05, type=float, 
+                        help='Min subpop prevalence (for metrics)')
 
+    parser.add_argument('-rho', action='store', default=0.1, type=float, 
+                        help='Min subpop prevalence (for metrics)')
     args = parser.parse_args()
     # import algorithm 
-    print('import from','methods.'+args.ALG)
-    algorithm = importlib.__import__('methods.'+args.ALG,
+    print('import from','ml.'+args.ml)
+    algorithm = importlib.__import__('ml.'+args.ml,
                                      globals(),
                                      locals(),
                                      ['*']
                                     )
 
     print('algorithm:',algorithm.est)
-    if 'hyper_params' not in dir(algorithm):
-        algorithm.hyper_params = {}
-    print('hyperparams:',algorithm.hyper_params)
 
     # optional keyword arguments passed to evaluate
     eval_kwargs = {}
@@ -229,7 +276,15 @@ if __name__ == '__main__':
     # if args.SKIP_TUNE:
     #     eval_kwargs['skip_tuning'] = True
 
-    evaluate_model(args.INPUT_FILE, args.RDIR, args.RANDOM_STATE, args.ALG,
-                   algorithm.est, algorithm.hyper_params, algorithm.complexity,
-                   algorithm.model, n_splits= args.NSPLIT,
-                   **eval_kwargs)
+    evaluate_model(
+        dataset=args.INPUT_FILE, 
+        results_path=args.RDIR,
+        random_state=args.RANDOM_STATE,
+        ml=args.ml,
+        est=algorithm.est, 
+        alpha=args.alpha,
+        n_bins=args.n_bins,
+        gamma=args.gamma,
+        rho=args.rho,
+        **eval_kwargs
+    )

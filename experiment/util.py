@@ -23,7 +23,35 @@ def jsonify(d):
         return d
     elif d == None:
         return None
+    elif hasattr(d, '__dict__'):
+        if hasattr(d, '__name__'):
+            tmp = d.__name__
+        else:
+            tmp = type(d).__name__
+        obj = {tmp:{}}
+        for k,v in vars(d).items():
+            obj[tmp][k] = jsonify(v)
+        return obj
     elif not isinstance(d, str):
         print("WARNING: attempting to store ",d,"as a str for json")
         return str(d)
     return d
+
+def hasattranywhere(C, attr: str):
+    """Recursively look thru the class for the attribute in any subclasses. 
+    Return None if it's nowhere, or list of nested attribute name otherwise.
+    """
+    attrs = []
+    if hasattr(C,attr):
+        attrs.append(attr)
+
+    for k,v in vars(C):
+        search = hasattranywhere(v)
+        for s in search:
+            attrs.append(k+'.'+s)
+
+    if len(attrs)==0:
+        return None
+
+    return attrs
+

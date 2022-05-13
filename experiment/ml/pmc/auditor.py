@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import ipdb
+from functools import lru_cache
+import logging
+logger = logging.getLogger(__name__)
 
 class Auditor():
     """A class that determines and manages group membership over which to assess
@@ -41,7 +44,8 @@ class Auditor():
                  gamma=0.1,
                  rho=0.1,
                  metric=None,
-                 random_state=0
+                 random_state=0,
+                 verbosity=0
                 ):
         self.estimator=estimator
         self.groups = groups
@@ -52,6 +56,7 @@ class Auditor():
         self.rho=rho
         self.metric=metric
         self.random_state=random_state
+        self.verbosity=verbosity
 
     def categorize(self, X, y, y_true=None):
         """Map data to an existing set of categories."""
@@ -83,9 +88,8 @@ class Auditor():
             if a given sample is in the cateogry. 
         """
         assert isinstance(X, pd.DataFrame), "X should be a dataframe"
-        self.N_ = len(X)
 
-        self.categories_ = None 
+        # self.categories_ = None 
         # df = X.copy()
 
         if self.bins is None:
@@ -103,6 +107,8 @@ class Auditor():
 
 
         print('self.bins_:',self.bins_)
+        min_size = self.gamma*self.alpha*len(X)/self.n_bins_
+        logger.info(f'category size limit: {round(min_size)}')
         # interval, retbins = pd.cut(y, self.bins_, include_lowest=True, 
         #                         retbins=True)
         # interval, bins = pd.cut(y, bins, include_lowest=True, retbins=True)
@@ -112,13 +118,13 @@ class Auditor():
         self.grouping_ = self.groups+['interval']
         # self.min_size_ = self.gamma*self.alpha*len(X)/self.n_bins_
 
-        self.categories_ = self.categorize(X,y)
+        return self.categorize(X,y)
 
         # print('min_size:',self.min_size_)
 
-        return self.categories_ 
+        # return self.categories_ 
 
-    def loss(self, y_true, y_pred, X=None, return_cat=False,
+    def loss(self, y_true, y_pred, X, return_cat=False,
              metric=None):
         """calculate current loss in terms of multicalibration or PMC"""
         metric = self.metric if metric == None else metric
@@ -127,7 +133,6 @@ class Auditor():
         categories = self.categorize(X, y_pred)
 
         for c, idx in categories.items():
-
             category_loss = np.abs(y_true.loc[idx].mean() 
                                    - y_pred.loc[idx].mean()
                                   )

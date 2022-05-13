@@ -1,7 +1,7 @@
 import copy
 import pandas as pd
-from MultiCalibrator import MultiCalibrator
-from Auditor import Auditor
+from multicalibrator import MultiCalibrator
+from auditor import Auditor
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
