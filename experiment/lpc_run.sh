@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # Run experiment. 
-rdir="results_22-05-13"
+rdir="../results_22-05-13r1"
 
 alpha=0.01
 gamma=0.01
@@ -11,12 +11,12 @@ methods=(
     "lr_cv"
     "lr_mc"
     "lr_pmc"
-    # "lr_mc_cv"
-    # "lr_pmc_cv"
+    "xgb"
+    "xgb_cv"
+    "xgb_mc"
 )
-    # "xgb"
-    # "xgb_cv"
-    # "xgb_mc"
+# "lr_mc_cv"
+# "lr_pmc_cv"
     # "xgb_pmc"
     # "xgb_mc_cv"
     # "xgb_pmc_cv"
