@@ -8,23 +8,23 @@ rho=0.01
 n_bins=10
 
 methods=(
-    "lr"
     "lr_cv"
     "lr_mc"
     "lr_pmc"
     "lr_mc_cv"
     "lr_pmc_cv"
-    "xgb"
-    "xgb_cv"
-    "xgb_mc"
-    "xgb_pmc"
-    "xgb_mc_cv"
-    "xgb_pmc_cv"
 )
+    # "xgb"
+    # "xgb_cv"
+    # "xgb_mc"
+    # "xgb_pmc"
+    # "xgb_mc_cv"
+    # "xgb_pmc_cv"
+# )
 seeds=$(cat seeds.txt)
 # Job parameters
 # cores
-N=4
+N=1
 q="epistasis_long"
 # mem=16384
 # mem=8192
@@ -39,14 +39,15 @@ for s in ${seeds[@]} ; do
         job_name="${m}_seed${s}_alpha${alpha}_gamma${gamma}_n_bins${n_bins}_rho${rho}" 
         job_file="${rdir}/${job_name}" 
 
-        echo bsub -o "${job_file}.out" \
+        bsub -o "${job_file}.out" \
              -n $N \
              -J $job_name \
              -q $q \
              -R "span[hosts=1] rusage[mem=${mem}]" \
              -W $timeout \
              -M $mem \
-             python evaluate_model.py data/mimic4_admissions.csv \
+             python evaluate_model.py \
+                 -file data/mimic4_admissions.csv \
                  -ml $m \
                  -seed $s \
                  -alpha $alpha \
