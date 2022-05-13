@@ -241,7 +241,7 @@ def evaluate_model(
     # write to file
     ##############################
     if not os.path.exists(results_path):
-        os.makedirs(results_path)
+        os.makedirs(results_path, exist_ok=True)
 
     save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
                  + str(random_state))
