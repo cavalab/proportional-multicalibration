@@ -3,8 +3,8 @@
 rdir="../results_22-05-13r1"
 
 alpha=0.01
-gamma=0.01
-rho=0.01
+gamma=0.05
+rho=0.1
 n_bins=10
 
 methods=(
