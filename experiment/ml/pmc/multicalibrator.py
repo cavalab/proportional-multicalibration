@@ -118,15 +118,21 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
         assert len(self.classes_) == 2, "Only binary classification supported"
-        assert self.split > 0.0 and self.split <= 1.0
-        train_X,test_X,train_y,test_y = \
-                train_test_split(X, 
-                                 y,
-                                 train_size=self.split,
-                                 test_size=1-self.split,
-                                 shuffle=False,
-                                 random_state=self.random_state
-                                )
+        # assert self.split > 0.0 and self.split <= 1.0
+        if split == 0.0 or split == 1.0:
+            train_X = X
+            test_X = X
+            train_y = y
+            test_y = y
+        else:
+            train_X,test_X,train_y,test_y = \
+                    train_test_split(X, 
+                                     y,
+                                     train_size=self.split,
+                                     test_size=1-self.split,
+                                     shuffle=False,
+                                     random_state=self.random_state
+                                    )
 
 
         self.est_ = self.estimator.fit(train_X, train_y)

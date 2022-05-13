@@ -257,7 +257,7 @@ if __name__ == '__main__':
     # parse command line arguments
     parser = argparse.ArgumentParser(
         description="Evaluate a method on a dataset.", add_help=False)
-    parser.add_argument('INPUT_FILE', action='store', type=str,
+    parser.add_argument('-file', action='store', type=str,
                         default='data/mimic4_admissions.csv',
                         help='Data file to analyze; ensure that the '
                         'target/label column is labeled as "y". '
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     #     eval_kwargs['skip_tuning'] = True
 
     evaluate_model(
-        dataset=args.INPUT_FILE, 
+        dataset=args.file, 
         results_path=args.RDIR,
         random_state=args.RANDOM_STATE,
         ml=args.ml,
