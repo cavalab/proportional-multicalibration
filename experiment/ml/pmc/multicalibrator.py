@@ -119,7 +119,7 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         self.classes_ = unique_labels(y)
         assert len(self.classes_) == 2, "Only binary classification supported"
         # assert self.split > 0.0 and self.split <= 1.0
-        if split == 0.0 or split == 1.0:
+        if self.split == 0.0 or self.split == 1.0:
             train_X = X
             test_X = X
             train_y = y
