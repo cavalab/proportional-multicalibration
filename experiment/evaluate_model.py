@@ -29,7 +29,6 @@ from ml.pmc.metrics import (differential_calibration,
                             multicalibration_loss,
                             proportional_multicalibration_loss,
                            )
-RHO = 0.1
 
 def evaluate_model(
     dataset, 

@@ -28,12 +28,12 @@ seeds=(
 14423
 28020
 )
+N=28
 echo "seeds:"
-    echo $m
-for m in ${methods[@]} ; do
-    echo $m
-    for s in ${seeds[@]} ; do
-        echo $s
+for s in ${seeds[@]} ; do
+    for m in ${methods[@]} ; do
+        ((i=i%N)); ((i++==0)) && wait
+        echo "python evaluate_model.py data/mimic4_admissions.csv -ml $m -seed $s -alpha $alpha -gamma $gamma -n_bins $n_bins -rho $rho -results_path $rdir"
         python evaluate_model.py data/mimic4_admissions.csv \
             -ml $m \
             -seed $s \

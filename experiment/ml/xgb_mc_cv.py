@@ -10,8 +10,6 @@ est = CV(base_est,
          param_distributions=hyper_params,
          **params,
          resource='max_iters',
-         min_resources=10,
-         max_resources=100,
-         scoring=make_scorer(multicalibration_loss,
-                             greater_is_better=False)
+         min_resources=100,
+         max_resources=10000,
         )
