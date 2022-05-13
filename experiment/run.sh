@@ -42,6 +42,7 @@ for m in ${methods[@]} ; do
             -n_bins $n_bins \
             -rho $rho \
             -results_path $rdir \
+            > "$rdir/$m_$s_alpha=$alpha_gamma=$gamma_n_bins=$n_bins_rho=$rho.log" \
             &
     done
 done
