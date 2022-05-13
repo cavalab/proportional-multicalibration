@@ -9,7 +9,7 @@ import argparse
 import importlib
 import sys
 import warnings
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import OneHotEncoder
 warnings.filterwarnings("ignore")
 
 def process_adm(data):
@@ -107,13 +107,13 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
     return x
 
 # Not exactly sure what to do for now
-def clean_text(df):
-    df['chiefcomplaint'] = df['chiefcomplaint'].fillna('.')
-    vectorizer = CountVectorizer(strip_accents='ascii',stop_words='english',max_features=100)
-
-    X = vectorizer.fit_transform(df["chiefcomplaint"])
-    df[vectorizer.get_feature_names_out()] = X.toarray()
-    # df = df.drop('chiefcomplaint',axis = 1)
+def clean_text(data):
+    df = data.copy()
+    df.chiefcomplaint = df.chiefcomplaint.fillna('___')
+    X = df.chiefcomplaint.values.ravel().reshape(-1,1)
+    enc = OneHotEncoder(max_categories=100, sparse=False).fit(X)
+    encoded = enc.transform(df['chiefcomplaint'].values.reshape(-1,1))
+    df[enc.get_feature_names_out()] = encoded
     return df
 
 
@@ -132,9 +132,9 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     ##########    
     print('previous visits..')
     df.loc[:,'prev_visit'] = df.groupby('subject_id').cumcount()
-    print('previous admissions..')
-    tmp = df.groupby('subject_id').apply(adm_count)  
-    df = pd.merge(df,tmp, on='stay_id')
+    # print('previous admissions..')
+    # tmp = df.groupby('subject_id').apply(adm_count)  
+    # df = pd.merge(df,tmp, on='stay_id')
 
     df['y'] = ~df.hadm_id.isna()
     # filter observation admissions
@@ -146,8 +146,12 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     df = remove_outliers(df)
 
     df = df.drop(columns=['hadm_id','subject_id', 'intime', 'admission_type'])
+    print('Cleaning Text Features...')
+    df = clean_text(df)
 
     print('finished processing dataset.')
+
+
     ccr = df["y"].sum()/((~df["y"]).sum())
     print(f'size: {df.shape}, cases: {df.y.sum()/len(df)}')
     print('dataset columns:',df.columns)
