@@ -11,8 +11,8 @@ methods=(
     "lr_cv"
     "lr_mc"
     "lr_pmc"
-    "lr_mc_cv"
-    "lr_pmc_cv"
+    # "lr_mc_cv"
+    # "lr_pmc_cv"
 )
     # "xgb"
     # "xgb_cv"

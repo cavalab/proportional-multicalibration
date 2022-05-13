@@ -5,6 +5,50 @@ from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
 
+def categorize_fn(X, y, groups,
+               n_bins=10,
+               bins=None,
+               alpha=0.01,
+               gamma=0.01
+              ):
+    """Map data to an existing set of categories."""
+    assert isinstance(X, pd.DataFrame), "X should be a dataframe"
+
+    categories = None 
+
+    if bins is None:
+        bins = np.linspace(float(1.0/n_bins), 1.0, n_bins)
+        bins[0] = 0.0
+    else:
+        n_bins=len(bins)
+
+    min_size = gamma*alpha*len(X)/n_bins
+
+    df = X[groups].copy()
+    df.loc[:,'interval'], retbins = pd.cut(y, bins, 
+                                           include_lowest=True,
+                                           retbins=True
+                                          )
+    categories = {}
+    # filter groups smaller than gamma*len(X)
+    for group, i in df.groupby(groups).groups.items():
+        if len(i)/len(X) <= gamma:
+            continue
+        for interval, j in df.loc[i].groupby('interval').groups.items():
+            if len(j) > min_size:
+                categories[group + (interval,)] = j
+                # ipdb.set_trace()
+
+
+
+
+    # categories = df.groupby(groups+['interval']).groups
+
+    # categories = {k:v for k,v in categories.items() 
+    #               if len(v) > min_size
+    #              } 
+    
+    return categories
 class Auditor():
     """A class that determines and manages group membership over which to assess
     multicalibration.
@@ -58,25 +102,31 @@ class Auditor():
         self.random_state=random_state
         self.verbosity=verbosity
 
-    def categorize(self, X, y, y_true=None):
+    def categorize(self, X, y):
         """Map data to an existing set of categories."""
 
-        df = X[self.groups].copy()
-        df['interval'],bins  = pd.cut(y, self.bins_, include_lowest=True,
-                                 retbins=True)
-        assert all([i==j for i,j in zip(bins,self.bins_)])
+        # df = X[self.groups].copy()
+        # df['interval'],bins  = pd.cut(y, self.bins_, include_lowest=True,
+        #                          retbins=True)
+        # assert all([i==j for i,j in zip(bins,self.bins_)])
 
-        categories = df.groupby(self.grouping_).groups
-        # categories = df.groupby(self.grouping_, sort=False).groups
-        min_size = self.gamma*self.alpha*len(X)/self.n_bins_
+        # categories = df.groupby(self.grouping_).groups
+        # # categories = df.groupby(self.grouping_, sort=False).groups
+        # min_size = self.gamma*self.alpha*len(X)/self.n_bins_
 
-        categories = {k:v for k,v in categories.items() 
-                      if len(v) > min_size
-                     } 
+        # categories = {k:v for k,v in categories.items() 
+        #               if len(v) > min_size
+        #              } 
 
-        return categories
+        # return categories
+        return categorize_fn(X, y, self.groups, 
+                          bins=self.bins_,
+                          alpha=self.alpha,
+                          gamma=self.gamma
+                         )
 
-    def make_categories(self, X, y, threshold=True):
+
+    def make_categories(self, X, y):
         """Define categories on data. 
 
         group:
@@ -108,6 +158,7 @@ class Auditor():
 
         logger.info(f'self.bins_: {self.bins_}')
         min_size = self.gamma*self.alpha*len(X)/self.n_bins_
+        logger.info(f'group size limit: {round(self.gamma*len(X))}')
         logger.info(f'category size limit: {round(min_size)}')
         # interval, retbins = pd.cut(y, self.bins_, include_lowest=True, 
         #                         retbins=True)

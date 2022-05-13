@@ -22,7 +22,7 @@ import os
 import inspect
 from util import jsonify, hasattranywhere
 from ml.pmc.auditor import Auditor
-from ml.pmc.params import groups
+from ml.pmc.params import (groups, Alphas, Gammas, N_binses, Rhos)
 from ml.pmc.metrics import (differential_calibration, 
                             multicalibration_score,
                             proportional_multicalibration_score,
@@ -153,10 +153,16 @@ def evaluate_model(
         'dataset':dataset,
         'algorithm':ml,
         'params':jsonify(est.get_params()),
-        'random_state':random_state,
         'process_time': process_time, 
         'time_time': time_time, 
     }
+    results.update(setatts)
+        # 'random_state':random_state,
+        # 'alpha': alpha,
+        # 'n_bins': n_bins,
+        # 'gamma': gamma,
+        # 'rho': rho
+    # }
 
     ##############################
     # scores
@@ -187,10 +193,10 @@ def evaluate_model(
                 y_true=target, 
                 groups=groups,
                 n_bins=n_bins,
-                proportional=False,
                 alpha=alpha,
                 gamma=gamma,
-                rho=rho
+                rho=rho,
+                proportional=False,
             )
             print('MC_loss_' + fold,
                   f"{results['MC_loss_' + fold]:.3f}")
@@ -278,7 +284,7 @@ if __name__ == '__main__':
     parser.add_argument('-ml', action='store', default='xgb',type=str, 
             help='Name of estimator (with matching file in ml/)')
     parser.add_argument('-results_path', action='store', dest='RDIR',
-                        default='results', type=str, 
+                        default='../results', type=str, 
                         help='Name of save file')
     parser.add_argument('-seed', action='store', dest='RANDOM_STATE',
                         default=42, type=int, help='Seed / trial')
