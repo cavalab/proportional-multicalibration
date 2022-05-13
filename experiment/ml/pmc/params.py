@@ -5,14 +5,14 @@ groups = ['ethnicity','gender'] #,'anchor_year_group']
 
 params = dict(
     auditor_type = Auditor(groups=groups),
-    eta = 0.25,
+    eta=0.25,
     gamma=0.05,
     alpha=0.05,
     rho=0.1,
     # max_iters=10000,
     max_iters=10**5,
     verbosity=1,
-    n_bins=7,
+    n_bins=5,
     # iter_sample='bootstrap'
 )
 # Etas = [0.1, 0.5, 1.0]
@@ -30,9 +30,9 @@ Iter_samples = [None, 'bootstrap']
 Splits = scipy.stats.uniform(0.25,.75)
 
 mc_hyper_params = dict(
-    eta = Etas,
-    gamma= Gammas,
-    alpha= Alphas,
+    eta=Etas,
+    gamma=Gammas,
+    alpha=Alphas,
     n_bins=N_binses,
     iter_sample=Iter_samples,
     split=Splits
