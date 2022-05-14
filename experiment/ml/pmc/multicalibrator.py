@@ -446,3 +446,8 @@ class MultiCalibrator(ClassifierMixin, BaseEstimator):
         # X = check_array(X)
 
         return self.predict_proba(X)[:,1] > 0.5
+
+    def score(self, X, y):
+        """Return auditor score"""
+        y_pred = self.predict_proba(X)[:,1]
+        return self.auditor_.loss(y, y_pred, X)[0]

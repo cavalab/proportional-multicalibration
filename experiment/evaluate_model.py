@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 import ipdb
 import itertools
@@ -22,7 +23,7 @@ import os
 import inspect
 from util import jsonify, hasattranywhere
 from ml.pmc.auditor import Auditor
-from ml.pmc.params import groups
+from ml.pmc.params import (groups, Alphas, Gammas, N_binses, Rhos)
 from ml.pmc.metrics import (differential_calibration, 
                             multicalibration_score,
                             proportional_multicalibration_score,
@@ -46,33 +47,44 @@ def evaluate_model(
 ):
     """Main evaluation routine."""
 
+    ########################################
+    # configure estimators
+    ########################################
+    setatts = {
+        'random_state':random_state, 
+        'alpha':alpha,
+        'n_bins':n_bins,
+        'gamma':gamma,
+        'rho':rho,
+    }
     np.random.seed(random_state)
-    if hasattr(est, 'random_state'):
-        est.random_state = random_state
-    if hasattr(est, 'n_jobs'):
-        est.n_jobs = 1
+    for k,v in setatts.items():
+        if hasattr(est, k):
+            setattr(est, k, v)
+    # if hasattr(est, 'n_jobs'):
+    #     est.n_jobs = 1
     if groups is not None:
         if hasattr(est, 'auditor_type'):
             est.auditor_type = Auditor(groups=groups)
-    if 'pmc' in ml and hasattr(est, 'scoring'):
-        est.scoring = (lambda est,x,y:
-                  proportional_multicalibration_score(
-                      est,x,y,
-                      alpha=alpha,
-                      n_bins=n_bins,
-                      gamma=gamma,
-                      rho=rho
-                  )
-                 )
-    elif 'mc' in ml and hasattr(est, 'scoring'):
-        est.scoring = (lambda est,x,y:
-                  multicalibration_score(
-                      est,x,y,
-                      alpha=alpha,
-                      n_bins=n_bins,
-                      gamma=gamma
-                  )
-                 )
+    # if 'pmc' in ml and hasattr(est, 'scoring'):
+    #     est.scoring = (lambda est,x,y:
+    #               proportional_multicalibration_score(
+    #                   est,x,y,
+    #                   alpha=alpha,
+    #                   n_bins=n_bins,
+    #                   gamma=gamma,
+    #                   rho=rho
+    #               )
+    #              )
+    # elif 'mc' in ml and hasattr(est, 'scoring'):
+    #     est.scoring = (lambda est,x,y:
+    #               multicalibration_score(
+    #                   est,x,y,
+    #                   alpha=alpha,
+    #                   n_bins=n_bins,
+    #                   gamma=gamma
+    #               )
+    #              )
     # attrs = hasattranywhere(est, 'auditor_type')
     # for a in attrs: 
     #     setattr(est,a,Auditor(groups=groups))
@@ -142,10 +154,16 @@ def evaluate_model(
         'dataset':dataset,
         'algorithm':ml,
         'params':jsonify(est.get_params()),
-        'random_state':random_state,
         'process_time': process_time, 
         'time_time': time_time, 
     }
+    results.update(setatts)
+        # 'random_state':random_state,
+        # 'alpha': alpha,
+        # 'n_bins': n_bins,
+        # 'gamma': gamma,
+        # 'rho': rho
+    # }
 
     ##############################
     # scores
@@ -176,10 +194,10 @@ def evaluate_model(
                 y_true=target, 
                 groups=groups,
                 n_bins=n_bins,
-                proportional=False,
                 alpha=alpha,
                 gamma=gamma,
-                rho=rho
+                rho=rho,
+                proportional=False,
             )
             print('MC_loss_' + fold,
                   f"{results['MC_loss_' + fold]:.3f}")
@@ -212,7 +230,6 @@ def evaluate_model(
             print('DC_loss_' + fold,
                   f"{results['DC_loss_' + fold]:.3f}")
 
-
     
     if hasattr(est, 'feature_importances_'):
         results['feature_importances_'] = \
@@ -224,10 +241,21 @@ def evaluate_model(
     # write to file
     ##############################
     if not os.path.exists(results_path):
-        os.makedirs(results_path)
+        os.makedirs(results_path, exist_ok=True)
 
-    save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
-                 + str(random_state))
+    save_file = os.path.join(results_path, '_'.join([f'{n}' for n in [
+        dataset_name,
+        ml,
+        random_state,
+        os.environ['LSB_JOBID'] if 'LSB_JOBID' in os.environ.keys() else '',
+        datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        ]
+        ]
+        )
+    )
+
+    # save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
+    #              + str(random_state))
 
     print('save_file:',save_file)
 
@@ -260,14 +288,15 @@ if __name__ == '__main__':
     parser.add_argument('-file', action='store', type=str,
                         default='data/mimic4_admissions.csv',
                         help='Data file to analyze; ensure that the '
-                        'target/label column is labeled as "y". '
-                        'If you use the preprocessing file, you do not need to do anything')    
+                             'target/label column is labeled as "y". '
+                             'If you use the preprocessing file, '
+                             'you do not need to do anything')    
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-ml', action='store', default='xgb',type=str, 
             help='Name of estimator (with matching file in ml/)')
     parser.add_argument('-results_path', action='store', dest='RDIR',
-                        default='results', type=str, 
+                        default='../results', type=str, 
                         help='Name of save file')
     parser.add_argument('-seed', action='store', dest='RANDOM_STATE',
                         default=42, type=int, help='Seed / trial')
@@ -277,7 +306,6 @@ if __name__ == '__main__':
                         help='Number of bins to consider for calibration')
     parser.add_argument('-gamma', action='store', default=0.05, type=float, 
                         help='Min subpop prevalence (for metrics)')
-
     parser.add_argument('-rho', action='store', default=0.1, type=float, 
                         help='Min subpop prevalence (for metrics)')
     args = parser.parse_args()

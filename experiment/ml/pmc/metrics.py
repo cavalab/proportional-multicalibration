@@ -5,47 +5,13 @@ from tqdm import tqdm
 import logging
 import itertools as it
 logger = logging.getLogger(__name__)
+from .auditor import categorize_fn
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = it.tee(iterable)
     next(b, None)
     return zip(a, b)
-
-def categorize(X, y, groups,
-               n_bins=10,
-               bins=None,
-               alpha=0.01,
-               gamma=0.01
-              ):
-    """Map data to an existing set of categories."""
-    assert isinstance(X, pd.DataFrame), "X should be a dataframe"
-
-    categories = None 
-
-    if bins is None:
-        bins = np.linspace(float(1.0/n_bins), 1.0, n_bins)
-        bins[0] = 0.0
-    else:
-        n_bins=len(bins)
-
-    min_size = gamma*alpha*len(X)/n_bins
-
-    df = X[groups].copy()
-    df.loc[:,'interval'], retbins = pd.cut(y, bins, 
-                                           include_lowest=True,
-                                           retbins=True
-                                          )
-
-    categories = df.groupby(groups+['interval']).groups
-
-    categories = {k:v for k,v in categories.items() 
-                  if len(v) > min_size
-                 } 
-    
-    return categories
-
-
 
 def multicalibration_loss(
     estimator,
@@ -76,7 +42,7 @@ def multicalibration_loss(
     assert groups is not None, "groups must be defined."
 
     if categories is None:
-        categories = categorize(X, y_pred, groups,
+        categories = categorize_fn(X, y_pred, groups,
                                 n_bins=n_bins,
                                 bins=bins,
                                 alpha=alpha, 
@@ -128,7 +94,7 @@ def differential_calibration(
     y_pred = estimator.predict_proba(X)[:,1]
 
     if categories is None:
-        categories = categorize(X, y_pred, groups,
+        categories = categorize_fn(X, y_pred, groups,
                                 n_bins=n_bins,
                                 bins=bins,
                                 alpha=alpha, 
