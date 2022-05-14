@@ -94,7 +94,7 @@ def differential_calibration(
     y_pred = estimator.predict_proba(X)[:,1]
 
     if categories is None:
-        categories = categorize_fn(X, y_pred, groups,
+        categories = stratify_groups(X, y_pred, groups,
                                 n_bins=n_bins,
                                 bins=bins,
                                 alpha=alpha, 
@@ -102,20 +102,17 @@ def differential_calibration(
                                )
     logger.info(f'# categories: {len(categories)}')
     dc_max = 0
-    logger.info("calcating pairwise differential calibration...")
-    for (ci,i),(cj,j) in pairwise(categories.items()):
-    # for ci, i in categories.items():
-    #     for cj, j in categories.items():
-    #         if ci==cj: 
-    #             continue
+    logger.info("calclating pairwise differential calibration...")
+    for interval in stratified_categories.keys():
+        for (ci,i),(cj,j) in pairwise(stratified_categories[interval].items()):
 
-        yi = max(y_true.loc[i].mean(), rho)
-        yj = max(y_true.loc[j].mean(), rho)
+            yi = max(y_true.loc[i].mean(), rho)
+            yj = max(y_true.loc[j].mean(), rho)
 
-        dc = np.abs( np.log(yi) - np.log(yj) )
+            dc = np.abs( np.log(yi) - np.log(yj) )
 
-        if dc > dc_max:
-            dc_max = dc
+            if dc > dc_max:
+                dc_max = dc
 
     return dc_max
 
