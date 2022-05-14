@@ -5,45 +5,6 @@ from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
 
-def stratify_groups(X, y, groups,
-               n_bins=10,
-               bins=None,
-               alpha=0.01,
-               gamma=0.01
-              ):
-    """Map data to an existing set of groups, stratified by risk interval."""
-    assert isinstance(X, pd.DataFrame), "X should be a dataframe"
-
-    categories = None 
-
-    if bins is None:
-        bins = np.linspace(float(1.0/n_bins), 1.0, n_bins)
-        bins[0] = 0.0
-    else:
-        n_bins=len(bins)
-
-    min_size = gamma*alpha*len(X)/n_bins
-
-    df = X[groups].copy()
-    df.loc[:,'interval'], retbins = pd.cut(y, bins, 
-                                           include_lowest=True,
-                                           retbins=True
-                                          )
-    stratified_categories = {}
-    for dfg, group in df.groupby(groups):
-        # filter groups smaller than gamma*len(X)
-        if len(dfg)/len(X) <= gamma:
-            continue
-
-        for interval, j in dfg.groupby('interval').groups.items():
-            if len(j) > min_size:
-                if interval not in stratified_categories.keys():
-                    stratified_categories[interval] = {}
-                else:
-                    stratified_categories[interval][group] = j
-                # ipdb.set_trace()
-    # now we have categories where, for each interval, there is a dict of groups.
-    return stratified_categories
 
 def categorize_fn(X, y, groups,
                n_bins=10,
@@ -70,8 +31,8 @@ def categorize_fn(X, y, groups,
                                            retbins=True
                                           )
     categories = {}
-    # filter groups smaller than gamma*len(X)
     for group, i in df.groupby(groups).groups.items():
+        # filter groups smaller than gamma*len(X)
         if len(i)/len(X) <= gamma:
             continue
         for interval, j in df.loc[i].groupby('interval').groups.items():
