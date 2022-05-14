@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 import ipdb
 import itertools
@@ -229,7 +230,6 @@ def evaluate_model(
             print('DC_loss_' + fold,
                   f"{results['DC_loss_' + fold]:.3f}")
 
-
     
     if hasattr(est, 'feature_importances_'):
         results['feature_importances_'] = \
@@ -243,8 +243,19 @@ def evaluate_model(
     if not os.path.exists(results_path):
         os.makedirs(results_path, exist_ok=True)
 
-    save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
-                 + str(random_state))
+    save_file = os.path.join(results_path, '_'.join([f'{n}' for n in [
+        dataset_name,
+        ml,
+        random_state,
+        os.environ['LSB_JOBID'] if 'LSB_JOBID' in os.environ.keys() else '',
+        datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+        ]
+        ]
+        )
+    )
+
+    # save_file = (results_path + '/' + dataset_name + '_' + ml + '_' 
+    #              + str(random_state))
 
     print('save_file:',save_file)
 
@@ -277,8 +288,9 @@ if __name__ == '__main__':
     parser.add_argument('-file', action='store', type=str,
                         default='data/mimic4_admissions.csv',
                         help='Data file to analyze; ensure that the '
-                        'target/label column is labeled as "y". '
-                        'If you use the preprocessing file, you do not need to do anything')    
+                             'target/label column is labeled as "y". '
+                             'If you use the preprocessing file, '
+                             'you do not need to do anything')    
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-ml', action='store', default='xgb',type=str, 

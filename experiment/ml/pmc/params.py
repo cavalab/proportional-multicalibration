@@ -19,7 +19,7 @@ params = dict(
 Etas = [0.1, 0.5, 1.0]
 eta_dist = scipy.stats.uniform(0.01,1)
 
-Gammas = [0.1, 0.5, 1.0]
+Gammas = [0.01, 0.05, 0.1]
 gamma_dist = scipy.stats.uniform(0.05,.2)
 
 Alphas = [0.01, 0.05, 0.1]
