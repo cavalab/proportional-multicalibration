@@ -5,6 +5,7 @@ from functools import lru_cache
 import logging
 logger = logging.getLogger(__name__)
 
+
 def categorize_fn(X, y, groups,
                n_bins=10,
                bins=None,
@@ -30,25 +31,16 @@ def categorize_fn(X, y, groups,
                                            retbins=True
                                           )
     categories = {}
-    # filter groups smaller than gamma*len(X)
     for group, i in df.groupby(groups).groups.items():
+        # filter groups smaller than gamma*len(X)
         if len(i)/len(X) <= gamma:
             continue
         for interval, j in df.loc[i].groupby('interval').groups.items():
             if len(j) > min_size:
                 categories[group + (interval,)] = j
                 # ipdb.set_trace()
-
-
-
-
-    # categories = df.groupby(groups+['interval']).groups
-
-    # categories = {k:v for k,v in categories.items() 
-    #               if len(v) > min_size
-    #              } 
-    
     return categories
+
 class Auditor():
     """A class that determines and manages group membership over which to assess
     multicalibration.

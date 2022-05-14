@@ -1,3 +1,4 @@
+import ipdb
 import numpy as np
 import pandas as pd
 from .params import groups as GROUPS
@@ -5,13 +6,53 @@ from tqdm import tqdm
 import logging
 import itertools as it
 logger = logging.getLogger(__name__)
-from .auditor import categorize_fn
+from .auditor import categorize_fn 
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = it.tee(iterable)
     next(b, None)
     return zip(a, b)
+
+def stratify_groups(X, y, groups,
+               n_bins=10,
+               bins=None,
+               alpha=0.01,
+               gamma=0.01
+              ):
+    """Map data to an existing set of groups, stratified by risk interval."""
+    assert isinstance(X, pd.DataFrame), "X should be a dataframe"
+
+
+    if bins is None:
+        bins = np.linspace(float(1.0/n_bins), 1.0, n_bins)
+        bins[0] = 0.0
+    else:
+        n_bins=len(bins)
+
+    min_size = gamma*alpha*len(X)/n_bins
+
+    df = X[groups].copy()
+    df.loc[:,'interval'], retbins = pd.cut(y, bins, 
+                                           include_lowest=True,
+                                           retbins=True
+                                          )
+    stratified_categories = {}
+    for group, dfg in df.groupby(groups):
+        # ipdb.set_trace()
+        # filter groups smaller than gamma*len(X)
+        if len(dfg)/len(X) <= gamma:
+            continue
+        
+        for interval, j in dfg.groupby('interval').groups.items():
+            if len(j) > min_size:
+                if interval not in stratified_categories.keys():
+                    stratified_categories[interval] = {}
+
+                stratified_categories[interval][group] = j
+                # ipdb.set_trace()
+    # now we have categories where, for each interval, there is a dict of groups.
+    return stratified_categories
 
 def multicalibration_loss(
     estimator,
@@ -78,7 +119,7 @@ def differential_calibration(
     groups=GROUPS,
     n_bins=None,
     bins=None,
-    categories=None,
+    stratified_categories=None,
     alpha=0.01,
     gamma=0.1,
     rho=0.01
@@ -93,29 +134,26 @@ def differential_calibration(
 
     y_pred = estimator.predict_proba(X)[:,1]
 
-    if categories is None:
-        categories = categorize_fn(X, y_pred, groups,
+    if stratified_categories is None:
+        stratified_categories = stratify_groups(X, y_pred, groups,
                                 n_bins=n_bins,
                                 bins=bins,
                                 alpha=alpha, 
                                 gamma=gamma
                                )
-    logger.info(f'# categories: {len(categories)}')
+    logger.info(f'# categories: {len(stratified_categories)}')
     dc_max = 0
-    logger.info("calcating pairwise differential calibration...")
-    for (ci,i),(cj,j) in pairwise(categories.items()):
-    # for ci, i in categories.items():
-    #     for cj, j in categories.items():
-    #         if ci==cj: 
-    #             continue
+    logger.info("calclating pairwise differential calibration...")
+    for interval in stratified_categories.keys():
+        for (ci,i),(cj,j) in pairwise(stratified_categories[interval].items()):
 
-        yi = max(y_true.loc[i].mean(), rho)
-        yj = max(y_true.loc[j].mean(), rho)
+            yi = max(y_true.loc[i].mean(), rho)
+            yj = max(y_true.loc[j].mean(), rho)
 
-        dc = np.abs( np.log(yi) - np.log(yj) )
+            dc = np.abs( np.log(yi) - np.log(yj) )
 
-        if dc > dc_max:
-            dc_max = dc
+            if dc > dc_max:
+                dc_max = dc
 
     return dc_max
 
