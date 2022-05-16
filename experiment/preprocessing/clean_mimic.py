@@ -109,9 +109,9 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
 # Not exactly sure what to do for now
 def clean_text(data):
     df = data.copy()
-    df.chiefcomplaint = df.chiefcomplaint.fillna('___')
-    X = df.chiefcomplaint.values.ravel().reshape(-1,1)
-    enc = OneHotEncoder(max_categories=100, sparse=False).fit(X)
+    df.chiefcomplaint = df.chiefcomplaint.fillna('___') # Fill NA with ____, which makes sense
+    X = df.chiefcomplaint.values.ravel().reshape(-1,1) 
+    enc = OneHotEncoder(max_categories=100, sparse=False).fit(X) # Keep only top 100
     encoded = enc.transform(df['chiefcomplaint'].values.reshape(-1,1))
     df[enc.get_feature_names_out()] = encoded
     return df
@@ -132,9 +132,9 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     ##########    
     print('previous visits..')
     df.loc[:,'prev_visit'] = df.groupby('subject_id').cumcount()
-    # print('previous admissions..')
-    # tmp = df.groupby('subject_id').apply(adm_count)  
-    # df = pd.merge(df,tmp, on='stay_id')
+    print('previous admissions..')
+    tmp = df.groupby('subject_id').apply(adm_count)  
+    df = pd.merge(df,tmp, on='stay_id')
 
     df['y'] = ~df.hadm_id.isna()
     # filter observation admissions
@@ -167,24 +167,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Input the file location for the four files from MIMIC IV.", add_help=False)
     parser.add_argument('-mimic_path', action='store', type=str,
-                        default='/media/cavalab/data/mimic-iv/mimic-iv-1.0/',
-                        help='Path for admission file')
+                        default='',
+                        help='Path to store file')
     parser.add_argument('-Admission_File', action='store', type=str,
-                        default='core/admissions.csv.gz',
+                        default='/home/guangya/fairness/analysis/Data_proprocessing/core/admissions.csv',
                         help='Path for admission file')
     parser.add_argument('-Edstay_File', action='store', type=str,
-                        default='ed/edstays.csv.gz',
+                        default='/home/guangya/fairness/analysis/Data_proprocessing/ed/edstays.csv',
                         help='Path for edstay file') 
     parser.add_argument('-Triage_File', action='store', type=str,
-                        default='ed/triage.csv.gz',
+                        default='/home/guangya/fairness/analysis/Data_proprocessing/ed/triage.csv',
                         help='Path for Triage File')
     parser.add_argument('-Patient_File', action='store', type=str,
-                        default='core/patients.csv.gz',
+                        default='/home/guangya/fairness/analysis/Data_proprocessing/core/patients.csv',
                         help='Path for Patient file')      
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='data/mimic4_admissions.csv',type=str, 
+                        dest='PATH',default='mimic4_admissions.csv',type=str, 
             help='Path of Saved final fire')
 
     args = parser.parse_args()

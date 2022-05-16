@@ -14,45 +14,41 @@ For our project, We used 4 files from MIMIC 4, which include admission and patie
 
 # Data Proprocessing:
 
- the ideal python file accepts 5 input, the file path of admission,edstay,triage, and patient, and the path you want to store the final resulting file respectively. You can try using the -h document to get more help for more specific information.
+Our python script accepts 5 input, the file path of admission,edstay,triage, and patient, and the path you want to store the final resulting file respectively. You can try using the -h document to get more help for more specific information.
 
-once the input are feed to the file, it will process the file and save them as the final.csv, will will be used for our further machine learning models.
+Once the input are provided to our clean_mimic.py script, it will process the file and save them as the final.csv, will will be used for our further machine learning and fairness models.
 
 See the following for our data preprocessing plans:
 
 ## Step 1 : data merging
 
-We first join triage and edstay table on stay_id;
-then join the result with admission table on subject_id
-and finally join result with patient table to get gender and age info.
+We first join triage and edstay table on stay_id; then join the result with admission table on subject_id and finally join result with patient table to get gender and age info.
 
 ## Step 2 : Dropping Unnecessary Columns
 
-we drop duplicates on stay_id(keeping first entry)
-then drop unnecessary columns (e.g. deathtime)
-remove outliers based on some pre-determined criteria(for example, the temperature should be between 95 and 105)
-Finally remove patients who are admitted by our defintion(explained in the next section) with admission_types with 'OBSERVATION' in the name
+We drop duplicates on stay_id(keeping first entry) then drop unnecessary columns for our modelling (e.g. deathtime)
+We then remove outliers based on some pre-determined criteria (for example, the temperature should be between 95 and 105)
+Finally we remove patients who are admitted (explained in the next section) with admission_types with 'OBSERVATION' in the name
 
 ## Step 3 : Creating New Columns
-We create 3 new columns, previous number of admission, previous number of visits, and our label 'y'.
+We create 3 new columns, previous number of admission, previous number of visits, and our label 'y' indicating whether one is admitted or not.
 
 For the label 'y' indicating whether or not the patient is admitted, we just simplely defined as whether or not the column 'hadm_id' is na(then 0) or not(then 1).
 
-For Previous number of admission, it's just the number of admission for a given subject_id prior to the current visit. Simiarly, previous number of visits is just  the number of visits for a given subject_id prior to the current visit. Note that # of visits should always be greater than or equal to number of admission, as someone who makes visits does not necessaily get admitted
-
+For Previous number of admission, it's just the number of admission for a given subject_id prior to the current visit. Simiarly, previous number of visits is just  the number of visits for a given subject_id prior to the current visit. Note that # of visits should always be greater than or equal to number of admission, as someone who makes visits does not necessaily get admitted. We manually create these two labels as hostirically they show up in the related literature as relevant features.
 
 ## Step 4 : Transforming Data
 
-We transform the variable cheifcomplanit using bag of words. Specifically, we one-hot encoded all of the vocabulary(using top 100 only), and treated the rest as the infrequent symptoms.
+We transform the text variable 'cheifcomplaint' using bag of words. Specifically, we one-hot encoded all of the vocabulary(using top 100 only), and treated the rest as the infrequent symptoms.
 
 We also tried one-hot encoding other categorical variables including admission_type,admission_location,language,insuance,martial status,
 and ethnicity.
 
-We also bin age into 5 year bins.
+We convert continopus age variable into 5 year bins.
 
 ## Step 5 : Save to Path
 
-We finally saved our file on path, and started our model training
+We finally saved our file on path provided(default is the same path), and started our model training. Also note that we drop 'chiefcomplaint' and 'admission_location' when we read files in model training.
 
 # Run the pipeline for Machine Learning on MIMIC data:
 
