@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # Run experiment. 
 rdir="../results_22-05-14r1"
-ntrials=30
+ntrials=70
 
 mkdir -p $rdir
 # job_submission_file="submission_file"
@@ -43,7 +43,7 @@ methods=(
     # "xgb"
     # "xgb_mc"
     # "xgb_pmc"
-seeds=$(cat seeds.txt | head -n $ntrials)
+seeds=$(cat seeds.txt | tail -n $ntrials)
 # Job parameters
 # cores
 N=1
