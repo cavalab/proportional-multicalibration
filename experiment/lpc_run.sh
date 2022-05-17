@@ -1,7 +1,8 @@
 #!/usr/bin/bash
 # Run experiment. 
-rdir="../results_22-05-14r1"
-ntrials=70
+rdir="../results_22-05-16/"
+ntrials=100
+seeds=$(cat seeds.txt | head -n $ntrials)
 
 mkdir -p $rdir
 # job_submission_file="submission_file"
@@ -26,24 +27,25 @@ rhos=(
 0.1
 )
 methods=(
-    "lr"
-    "lr_mc"
-    "lr_pmc"
-    "rf"
-    "rf_mc"
-    "rf_pmc"
+    "lr_mc_cv"
+    "lr_pmc_cv"
+    "rf_mc_cv"
+    "rf_pmc_cv"
 )
 # all:
     # "lr"
     # "lr_mc"
+    # "lr_mc_cv"
     # "lr_pmc"
+    # "lr_pmc_cv"
     # "rf"
     # "rf_mc"
+    # "rf_mc_cv"
     # "rf_pmc"
+    # "rf_pmc_cv"
     # "xgb"
     # "xgb_mc"
     # "xgb_pmc"
-seeds=$(cat seeds.txt | tail -n $ntrials)
 # Job parameters
 # cores
 N=1
