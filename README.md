@@ -1,6 +1,10 @@
 Reconciling Differential Fairness and Multicalibration 
 
-Elle Lett & William La Cava
+# Contact
+
+- Elle Lett 
+- Guangya Wang 
+- William La Cava
 
 (Work in progress)
 
