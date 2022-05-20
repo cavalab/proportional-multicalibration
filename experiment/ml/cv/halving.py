@@ -13,7 +13,6 @@ params = dict(
     cv=cv, 
     verbose=2, 
     n_jobs=1, 
-    scoring='roc_auc'
 )
 
 CV = HalvingGridSearchCV

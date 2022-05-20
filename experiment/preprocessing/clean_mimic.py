@@ -10,6 +10,7 @@ import importlib
 import sys
 import warnings
 warnings.filterwarnings("ignore")
+from sklearn.preprocessing import OneHotEncoder
 
 def process_adm(data):
     adm = pd.read_csv(data)
@@ -106,8 +107,14 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
     return x
 
 # Not exactly sure what to do for now
-def clean_text(chief_complaint):
-    return None
+def clean_text(data):
+    df = data.copy()
+    df.chiefcomplaint = df.chiefcomplaint.fillna('___') # Fill NA with ____, which makes sense
+    X = df.chiefcomplaint.values.ravel().reshape(-1,1) 
+    enc = OneHotEncoder(max_categories=100, sparse=False).fit(X) # Keep only top 100
+    encoded = enc.transform(df['chiefcomplaint'].values.reshape(-1,1))
+    df[enc.get_feature_names_out()] = encoded
+    return df
 
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
@@ -138,7 +145,12 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('removing outliers...')
     df = remove_outliers(df)
 
+    print('Cleaning Text Features...')
+    df = clean_text(df)
+    
     df = df.drop(columns=['hadm_id','subject_id', 'intime', 'admission_type'])
+
+
 
     print('finished processing dataset.')
     ccr = df["y"].sum()/((~df["y"]).sum())
