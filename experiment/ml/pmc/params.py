@@ -1,5 +1,6 @@
 from ml.pmc.auditor import Auditor
 import scipy.stats #import randint
+import numpy as np
 
 groups = ['ethnicity','gender'] #,'anchor_year_group']
 
@@ -9,14 +10,14 @@ params = dict(
     gamma=0.05,
     alpha=0.05,
     rho=0.1,
-    # max_iters=10000,
     max_iters=10**5,
     verbosity=1,
     n_bins=5,
     split=0,
     # iter_sample='bootstrap'
 )
-Etas = [0.1, 0.5, 1.0]
+# Etas = [0.1, 0.5, 1.0]
+Etas = np.linspace(0.01,1,10)
 eta_dist = scipy.stats.uniform(0.01,1)
 
 Gammas = [0.01, 0.05, 0.1]
@@ -38,11 +39,12 @@ split_dist = scipy.stats.uniform(0.25,.75)
 
 mc_hyper_params = dict(
     eta=Etas,
-    gamma=Gammas,
-    alpha=Alphas,
-    n_bins=N_binses,
-    iter_sample=Iter_samples,
-    split=Splits
+    # gamma=Gammas,
+    # alpha=Alphas,
+    # n_bins=N_binses,
+    # iter_sample=Iter_samples,
+    # split=Splits
 )
-pmc_hyper_params = dict(rho=Rhos)
-pmc_hyper_params.update(mc_hyper_params)
+# pmc_hyper_params = dict(rho=Rhos)
+# pmc_hyper_params.update(mc_hyper_params)
+pmc_hyper_params = mc_hyper_params.copy()

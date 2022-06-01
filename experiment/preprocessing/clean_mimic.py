@@ -1,4 +1,6 @@
 #https://github.com/cavalab/popp_fairness/issues/6
+from distutils.command.clean import clean
+from xmlrpc.client import boolean
 from tqdm import tqdm
 import ipdb
 import os
@@ -11,6 +13,7 @@ import sys
 import warnings
 warnings.filterwarnings("ignore")
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 
 def process_adm(data):
     adm = pd.read_csv(data)
@@ -106,16 +109,6 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
         x.loc[(x[c]<low) | (x[c] > high),c] = float('nan')
     return x
 
-# Not exactly sure what to do for now
-def clean_text(data):
-    df = data.copy()
-    df.chiefcomplaint = df.chiefcomplaint.fillna('___') # Fill NA with ____, which makes sense
-    X = df.chiefcomplaint.values.ravel().reshape(-1,1) 
-    enc = OneHotEncoder(max_categories=100, sparse=False).fit(X) # Keep only top 100
-    encoded = enc.transform(df['chiefcomplaint'].values.reshape(-1,1))
-    df[enc.get_feature_names_out()] = encoded
-    return df
-
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('loading and processing mimic files...')
@@ -145,12 +138,13 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('removing outliers...')
     df = remove_outliers(df)
 
-    print('Cleaning Text Features...')
-    df = clean_text(df)
+    # print('Cleaning Text Features...')
+    # if(label):
+    #     df = clean_text_label(df)
+    # else:
+    #     df = clean_text(df)
     
-    df = df.drop(columns=['hadm_id','subject_id', 'intime', 'admission_type'])
-
-
+    df = df.drop(columns=['hadm_id','subject_id', 'intime', 'admission_location','admission_type'])
 
     print('finished processing dataset.')
     ccr = df["y"].sum()/((~df["y"]).sum())
@@ -185,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='data/mimic4_admissions.csv',type=str, 
+                        dest='PATH',default='data/mimic4_admissions.csv',type=str,
             help='Path of Saved final fire')
 
     args = parser.parse_args()
@@ -194,4 +188,5 @@ if __name__ == "__main__":
                  os.path.join(args.mimic_path, args.Edstay_File), 
                  os.path.join(args.mimic_path, args.Triage_File), 
                  os.path.join(args.mimic_path, args.Patient_File),
-                 results_path = args.PATH)
+                 results_path = args.PATH) # Rerun this file again to include prev_adm
+ 

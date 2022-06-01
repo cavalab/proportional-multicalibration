@@ -1,5 +1,6 @@
 from datetime import datetime
 import sys
+from xmlrpc.client import Boolean
 import ipdb
 import itertools
 import pandas as pd
@@ -41,9 +42,11 @@ def evaluate_model(
     n_bins,
     gamma,
     rho,
+    one_hot_encoded,
     n_samples=0, 
     scale_x = False, 
-    pre_train=None
+    pre_train=None,
+    
 ):
     """Main evaluation routine."""
 
@@ -93,7 +96,8 @@ def evaluate_model(
     ##################################################
     # setup data
     ##################################################
-    features, labels = read_file(dataset)
+    features, labels = read_file(dataset,one_hot_encode = one_hot_encoded,label='y',
+    text_label='chiefcomplaint')
     print('features:')
     print(features.head())
     print(features.shape)
@@ -308,6 +312,8 @@ if __name__ == '__main__':
                         help='Min subpop prevalence (for metrics)')
     parser.add_argument('-rho', action='store', default=0.1, type=float, 
                         help='Min subpop prevalence (for metrics)')
+    parser.add_argument('-ohc', action='store_true', default=False,
+                        help='Specificy wheather text should be one-hot-encoded')
     args = parser.parse_args()
     # import algorithm 
     print('import from','ml.'+args.ml)
@@ -327,7 +333,6 @@ if __name__ == '__main__':
     # check for conflicts btw cmd line args and eval_kwargs
     # if args.SKIP_TUNE:
     #     eval_kwargs['skip_tuning'] = True
-
     evaluate_model(
         dataset=args.file, 
         results_path=args.RDIR,
@@ -338,5 +343,6 @@ if __name__ == '__main__':
         n_bins=args.n_bins,
         gamma=args.gamma,
         rho=args.rho,
+        one_hot_encoded=args.ohc,
         **eval_kwargs
     )

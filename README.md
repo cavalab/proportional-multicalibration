@@ -40,6 +40,8 @@ For Previous number of admission, it's just the number of admission for a given 
 
 We transform the text variable 'cheifcomplaint' using bag of words. Specifically, we one-hot encoded all of the vocabulary(using top 100 only), and treated the rest as the infrequent symptoms.
 
+Also note that to deal with cheifcomplanit, I used the latest feature of sklean's one-hot encoding to encode infrequent features, so mostly like you will need to update your scikit-learn to run this with this command: !pip install -U scikit-learn
+
 We also tried one-hot encoding other categorical variables including admission_type,admission_location,language,insuance,martial status,
 and ethnicity.
 
@@ -51,4 +53,39 @@ We finally saved our file on path provided(default is the same path), and starte
 
 # Run the pipeline for Machine Learning on MIMIC data:
 
-TBD
+For the below process, we used three classical machine learning methods(XGboosting, Random Forest, and Logistic Regression) to predict our predefined binary variable 'y' (which indicates wheather a patient is admitted or not)and also we evaluated and improved the fainness matrics:) ; We also used cluster to help us boost the model training speed especially for we are selecting the best set of hyper-parameters for our models.
+
+For all of the model discussed below, we used the following pipelines:
+
+1: Read data from files and label encoded all of the categorical features.
+2: Train and split the data into 3:1 ratio. (Optionally we can scale and sample a subset from the data)
+3: Fit one of the model below
+4: Saved the resulting metrics(AU-ROC, MC Loss, PMC Loss, and DC loss) with the specific hyperparameter setting or feature importance if applicable.
+
+## Step 1: Baseline Model:
+
+We first fit the three machine learning models without any fairness constraint and evaluated their training and testing AUROC scores as well as other fairness metrics such as MC/PMC/DC loss. We used cross-validation to help us select the best set of hyperparameters and saved them as the baseline model for our models with fairneess improvement as discussed below.
+
+## Step2: MC Model:
+
+We improved our model's fairness by fitting our implemented MultiCalibrator using the base estimators discussed above with MC(Multi-Calibration) as the optimized metrics for the model to fit; We finally evaluated their AUROC and other fairness metics using the best hyperparmeter selected by Cross-Validation.
+
+## Step3: PMC Model:
+
+We improved our model's fairness by fitting our implemented MultiCalibrator using the base estimators discussed above with PMC(Proportional Multi-Calibration) as the optimized metrics for the model to fit; We finally evaluated their AUROC and other fairness metics using the best hyperparmeter selected by Cross-Validation.
+
+(with PMC, for categories  in C:
+rbar = get mean prediction on category c
+ybar = mean label on c
+if MC:
+t = alpha
+else:
+t = ybar * alpha
+update the model when abs(ybar - rbar) > t:
+)
+
+## Step4: Summralize results:
+
+All of the above results are stored in a json format. We finally created a notebook to display those results in a more tabular format as well as made some visuzizations. We showed that our innonative post-processing algorithm for learning risk prediction models that satisfy proportional multicalibration indeed improved the fairness metrics significantly on our machine learning models as suggested by the three metrics loss while still preseving its performance in terms of AUROC.
+(Put a Link to the notebook & also other models)
+
