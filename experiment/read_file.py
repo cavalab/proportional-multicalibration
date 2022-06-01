@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 
 # Make read_file work for both dataset by adding extra parameter to the below functions
-def clean_text(data,text_label):
+def one_hot_encode_text(data,text_label):
     df = data.copy()
     df[text_label] = df[text_label].fillna('___')
     # Fill NA with ____, which makes sense
@@ -18,7 +18,8 @@ def clean_text(data,text_label):
     df[vectorizer.get_feature_names_out()] = X.toarray()
     return df
 
-def clean_text_label(data,text_label):
+def label_encode_text(data,text_label):
+    """Label encoding of column text_label"""
     df = data.copy()
     df[text_label] = df[text_label].fillna('___') # Fill NA with ____, which makes sense
     df[text_label] = df[text_label].apply(lambda x: x.lower())
@@ -26,22 +27,33 @@ def clean_text_label(data,text_label):
     words_rep = list(df[text_label].value_counts()[np.where((df[text_label].value_counts()/df.shape[0]).cumsum()>0.80)[0]].index)
     df.loc[df[text_label].isin(words_rep),text_label] = 'infrequent'
     enc = LabelEncoder()
-    df['Complaint_label_encoded'] = enc.fit_transform(df[text_label])
+    df[f'{text_label}_label_encoded'] = enc.fit_transform(df[text_label])
     return df
 
-def read_file(filename, one_hot_encode, label,text_label):
+def read_file(filename, one_hot_encode, label, text_features=None):
+    """read filename into pandas dataframe. optionally onehotencode text
+    features, and label encode categorical data. returns X,y.
+
+    text_features: list. features to treat as text. 
+    one_hot_encode: bool. whether to one hot encode text_features. if False,
+                    we apply label_encode_text to text_features.
+    """
     input_data = pd.read_csv(filename)
     # Drop these data for now,
 
-    if(one_hot_encode):
-        input_data = clean_text(input_data,text_label)
-        print(' One Hot Encoded Text ')
-    else:
-        input_data = clean_text_label(input_data,text_label)
-        print(' Label Encoded Text ')
+    for col in text_features:
+        if(one_hot_encode):
+            print('One Hot Encoding',col)
+            input_data = one_hot_encode_text(input_data,col)
+        else:
+            print(' Label Encoded Text ',col)
+            input_data = label_encode_text(input_data,col)
     X = input_data.drop([label,text_label],axis = 1)
     encodings={}
-    for c in X.select_dtypes(['object','category']).columns:
+    # 
+    for c in X.select_dtypes(['object','category']).columns :
+        if c in one_hot_encode:
+            continue
         print(c)
         le = LabelEncoder()
         X[c] = le.fit_transform(X[c])
