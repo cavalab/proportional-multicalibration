@@ -28,7 +28,8 @@ numeric_transformer = Pipeline(steps=[
 ])
 
 est = Pipeline(steps = [('preprocessor', numeric_transformer), 
-                        ('estimator',grid_est)
+                        # ('estimator',grid_est)
+                        ('estimator',ml)
                        ],
                memory=cachedir
               )
