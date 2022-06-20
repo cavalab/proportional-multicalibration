@@ -1,6 +1,10 @@
 Reconciling Differential Fairness and Multicalibration 
 
-Elle Lett & William La Cava
+# Contact
+
+- Elle Lett 
+- Guangya Wang 
+- William La Cava
 
 (Work in progress)
 
@@ -88,4 +92,3 @@ update the model when abs(ybar - rbar) > t:
 
 All of the above results are stored in a json format. We finally created a notebook to display those results in a more tabular format as well as made some visuzizations. We showed that our innonative post-processing algorithm for learning risk prediction models that satisfy proportional multicalibration indeed improved the fairness metrics significantly on our machine learning models as suggested by the three metrics loss while still preseving its performance in terms of AUROC.
 (Put a Link to the notebook & also other models)
-
