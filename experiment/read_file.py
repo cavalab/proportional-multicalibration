@@ -28,6 +28,7 @@ def label_encode_text(data,text_label):
     df.loc[df[text_label].isin(words_rep),text_label] = 'infrequent'
     enc = LabelEncoder()
     df[f'{text_label}_label_encoded'] = enc.fit_transform(df[text_label])
+    df = df.drop(columns=text_label, axis=1)
     return df
 
 def read_file(filename, one_hot_encode, label, text_features=None):
@@ -48,23 +49,25 @@ def read_file(filename, one_hot_encode, label, text_features=None):
         else:
             print(' Label Encoded Text ',col)
             input_data = label_encode_text(input_data,col)
-    X = input_data.drop([label,text_label],axis = 1)
-    encodings={}
-    # 
-    for c in X.select_dtypes(['object','category']).columns :
-        if c in one_hot_encode:
-            continue
-        print(c)
-        le = LabelEncoder()
-        X[c] = le.fit_transform(X[c])
-        encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
-                        for k,v in vars(le).items()
-                       }
 
-    with open('label_encodings.json','w') as of:
-        json.dump(encodings, of)
+    X = input_data.drop(label,axis = 1)
+    # encodings={}
+    # 
+    # for c in X.select_dtypes(['object','category']).columns :
+    #     if c in one_hot_encode:
+    #         continue
+    #     print(c)
+    #     le = LabelEncoder()
+    #     X[c] = le.fit_transform(X[c])
+    #     encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
+    #                     for k,v in vars(le).items()
+    #                    }
+
+    # with open('label_encodings.json','w') as of:
+    #     json.dump(encodings, of)
     y = input_data[label].astype(int)
 
+    # ipdb.set_trace()
     return X, y 
 
 

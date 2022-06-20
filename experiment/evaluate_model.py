@@ -42,7 +42,7 @@ def evaluate_model(
     n_bins,
     gamma,
     rho,
-    one_hot_encoded,
+    one_hot_encode,
     n_samples=0, 
     scale_x = False, 
     pre_train=None,
@@ -96,8 +96,10 @@ def evaluate_model(
     ##################################################
     # setup data
     ##################################################
-    features, labels = read_file(dataset,one_hot_encode = one_hot_encoded,label='y',
-    text_label='chiefcomplaint')
+    features, labels = read_file(dataset,
+                                 one_hot_encode = one_hot_encode,
+                                 label='y',
+                                 text_features=['chiefcomplaint'])
     print('features:')
     print(features.head())
     print(features.shape)
@@ -343,6 +345,6 @@ if __name__ == '__main__':
         n_bins=args.n_bins,
         gamma=args.gamma,
         rho=args.rho,
-        one_hot_encoded=args.ohc,
+        one_hot_encode=args.ohc,
         **eval_kwargs
     )
