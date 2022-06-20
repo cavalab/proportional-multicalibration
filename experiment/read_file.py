@@ -40,7 +40,6 @@ def read_file(filename, one_hot_encode, label, text_features=None):
                     we apply label_encode_text to text_features.
     """
     input_data = pd.read_csv(filename)
-    # Drop these data for now,
 
     for col in text_features:
         if(one_hot_encode):
@@ -52,8 +51,9 @@ def read_file(filename, one_hot_encode, label, text_features=None):
 
     X = input_data.drop(label,axis = 1)
 
+    # encode anything that is categorical with a label encoder, if not in
+    # text_features
     encodings={}
-    # 
     for c in X.select_dtypes(['object','category']).columns :
         if c in text_features:
             continue
