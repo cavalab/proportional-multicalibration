@@ -51,20 +51,21 @@ def read_file(filename, one_hot_encode, label, text_features=None):
             input_data = label_encode_text(input_data,col)
 
     X = input_data.drop(label,axis = 1)
-    # encodings={}
-    # 
-    # for c in X.select_dtypes(['object','category']).columns :
-    #     if c in one_hot_encode:
-    #         continue
-    #     print(c)
-    #     le = LabelEncoder()
-    #     X[c] = le.fit_transform(X[c])
-    #     encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
-    #                     for k,v in vars(le).items()
-    #                    }
 
-    # with open('label_encodings.json','w') as of:
-    #     json.dump(encodings, of)
+    encodings={}
+    # 
+    for c in X.select_dtypes(['object','category']).columns :
+        if c in text_features:
+            continue
+        print(c)
+        le = LabelEncoder()
+        X[c] = le.fit_transform(X[c])
+        encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
+                        for k,v in vars(le).items()
+                       }
+    with open('label_encodings.json','w') as of:
+        json.dump(encodings, of)
+
     y = input_data[label].astype(int)
 
     # ipdb.set_trace()
