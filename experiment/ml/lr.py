@@ -8,18 +8,7 @@ import numpy as np
 from tempfile import mkdtemp
 cachedir = mkdtemp()
 
-params = {
-            'penalty': ['l1', 'l2'],
-            'C': [0.01, 0.1, 1, 10],
-         }
-
-
-ml=LogisticRegression(n_jobs=1, solver='liblinear')
-
-grid_est = HalvingGridSearchCV(ml,
-                          params,
-                          cv = 5
-                         )
+ml = LogisticRegression(n_jobs=-1, solver='saga',penalty='l1')
 
 
 numeric_transformer = Pipeline(steps=[
@@ -28,7 +17,7 @@ numeric_transformer = Pipeline(steps=[
 ])
 
 est = Pipeline(steps = [('preprocessor', numeric_transformer), 
-                        ('estimator',grid_est)
+                        ('estimator',ml)
                        ],
                memory=cachedir
               )

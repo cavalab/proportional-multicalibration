@@ -3,22 +3,57 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import CountVectorizer
 
-def read_file(filename, label='y', one_hot_encode=False,
-              drop_columns =
-              ['chiefcomplaint','admission_type','admission_location']):
-    
-    
+# Make read_file work for both dataset by adding extra parameter to the below functions
+def one_hot_encode_text(data,text_label):
+    df = data.copy()
+    df[text_label] = df[text_label].fillna('___')
+    # Fill NA with ____, which makes sense
+    df[text_label] = df[text_label].apply(lambda x: x.lower())
+    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',','').split(' '))))
+    allsentences = df[text_label]
+    vectorizer =CountVectorizer(min_df=6)
+    X = vectorizer.fit_transform(allsentences)
+    df[vectorizer.get_feature_names_out()] = X.toarray()
+    return df
+
+def label_encode_text(data,text_label):
+    """Label encoding of column text_label"""
+    df = data.copy()
+    df[text_label] = df[text_label].fillna('___') # Fill NA with ____, which makes sense
+    df[text_label] = df[text_label].apply(lambda x: x.lower())
+    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',','').split(' '))))
+    words_rep = list(df[text_label].value_counts()[np.where((df[text_label].value_counts()/df.shape[0]).cumsum()>0.80)[0]].index)
+    df.loc[df[text_label].isin(words_rep),text_label] = 'infrequent'
+    enc = LabelEncoder()
+    df[f'{text_label}_label_encoded'] = enc.fit_transform(df[text_label])
+    return df
+
+def read_file(filename, one_hot_encode, label, text_features=None):
+    """read filename into pandas dataframe. optionally onehotencode text
+    features, and label encode categorical data. returns X,y.
+
+    text_features: list. features to treat as text. 
+    one_hot_encode: bool. whether to one hot encode text_features. if False,
+                    we apply label_encode_text to text_features.
+    """
     input_data = pd.read_csv(filename)
     # Drop these data for now,
-    X = input_data.drop([label]+drop_columns,axis = 1)
-    # feature_names = [x for x in input_data.columns.values if x != label]
-    # feature_names = np.array(feature_names)
 
-    # X = pd.get_dummies(input_data)
-    # ipdb.set_trace()
+    for col in text_features:
+        if(one_hot_encode):
+            print('One Hot Encoding',col)
+            input_data = one_hot_encode_text(input_data,col)
+        else:
+            print(' Label Encoded Text ',col)
+            input_data = label_encode_text(input_data,col)
+    X = input_data.drop([label,text_label],axis = 1)
     encodings={}
-    for c in X.select_dtypes(['object','category']).columns:
+    # 
+    for c in X.select_dtypes(['object','category']).columns :
+        if c in one_hot_encode:
+            continue
         print(c)
         le = LabelEncoder()
         X[c] = le.fit_transform(X[c])
@@ -28,17 +63,8 @@ def read_file(filename, label='y', one_hot_encode=False,
 
     with open('label_encodings.json','w') as of:
         json.dump(encodings, of)
-
-    # if one_hot_encode:
-    #     X = pd.get_dummies(input_data)
-    # else:
-    #     X = input_data
-
-    # X = X.values.astype(float)
     y = input_data[label].astype(int)
-        # Note that feature name might not be the same as dataset, as we use
-    # one-hot encoding here
-    # assert(X.shape[1] == feature_names.shape[0])
 
     return X, y 
+
 
