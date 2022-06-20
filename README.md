@@ -2,12 +2,14 @@ Reconciling Differential Fairness and Multicalibration
 (Work in progress)
 
 # Contact
-
+@cavalab : 
 - Elle Lett 
 - Guangya Wang 
-- William La Cava (@lacava, william . lacava @ childrens . harvard . edu ) 
+- William La Cava ( @lacava, william . lacava @ childrens . harvard . edu ) 
 
+# License
 
+GPLv3
 
 # MIMIC 4 Dataset
 
