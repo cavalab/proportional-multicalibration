@@ -11,7 +11,7 @@ def one_hot_encode_text(data,text_label):
     df[text_label] = df[text_label].fillna('___')
     # Fill NA with ____, which makes sense
     df[text_label] = df[text_label].apply(lambda x: x.lower())
-    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',','').split(' '))))
+    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',',' ').split(' '))))
     allsentences = df[text_label]
     vectorizer =CountVectorizer(min_df=6)
     X = vectorizer.fit_transform(allsentences)
@@ -24,7 +24,8 @@ def label_encode_text(data,text_label):
     df[text_label] = df[text_label].fillna('___') # Fill NA with ____, which makes sense
     df[text_label] = df[text_label].apply(lambda x: x.lower())
     df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',','').split(' '))))
-    words_rep = list(df[text_label].value_counts()[np.where((df[text_label].value_counts()/df.shape[0]).cumsum()>0.80)[0]].index)
+    words_rep =
+    list(df[text_label].value_counts()[np.where((df[text_label].value_counts()/df.shape[0]).cumsum()<0.80)[0]].index)
     df.loc[df[text_label].isin(words_rep),text_label] = 'infrequent'
     enc = LabelEncoder()
     df[f'{text_label}_label_encoded'] = enc.fit_transform(df[text_label])
