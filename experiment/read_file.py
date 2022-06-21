@@ -11,7 +11,7 @@ def one_hot_encode_text(data,text_label):
     df[text_label] = df[text_label].fillna('___')
     # Fill NA with ____, which makes sense
     df[text_label] = df[text_label].apply(lambda x: x.lower())
-    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',','').split(' '))))
+    df[text_label] = df[text_label].apply(lambda x: ' '.join(sorted(x.replace(',',' ').split(' '))))
     allsentences = df[text_label]
     vectorizer =CountVectorizer(min_df=6)
     X = vectorizer.fit_transform(allsentences)
