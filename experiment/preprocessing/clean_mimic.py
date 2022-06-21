@@ -96,10 +96,10 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('loading and processing mimic files...')
-    adm = pd.read_csv(data)
-    ed = pd.read_csv(data)
-    tri = pd.read_csv(data)
-    pat = pd.read_csv(data)
+    adm = pd.read_csv(adm)
+    ed = pd.read_csv(ed)
+    tri = pd.read_csv(tri)
+    pat = pd.read_csv(pat)
 
     print('merging...')
     df = merge_all(adm,ed,tri,pat)
