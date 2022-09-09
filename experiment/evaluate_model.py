@@ -43,6 +43,7 @@ def evaluate_model(
     gamma,
     rho,
     one_hot_encoded,
+    text_features,
     n_samples=0, 
     scale_x = False, 
     pre_train=None,
@@ -97,7 +98,7 @@ def evaluate_model(
     # setup data
     ##################################################
     features, labels = read_file(dataset,one_hot_encode = one_hot_encoded,label='y',
-    text_label='chiefcomplaint')
+    text_features=text_features)
     print('features:')
     print(features.head())
     print(features.shape)
@@ -312,8 +313,10 @@ if __name__ == '__main__':
                         help='Min subpop prevalence (for metrics)')
     parser.add_argument('-rho', action='store', default=0.1, type=float, 
                         help='Min subpop prevalence (for metrics)')
-    parser.add_argument('-ohc', action='store_true', default=False,
-                        help='Specificy wheather text should be one-hot-encoded')
+    parser.add_argument('-ohc', action='store', default=1, type = int,
+                        help='Specificy how text should be one-hot-encoded, Input 1 if one-hot encoded, -1 if label encoded, and else embedding encoded')
+    parser.add_argument("-text", action='store',type=str,default='chiefcomplaint', help = 
+    'Specify text features with comma seperated')
     args = parser.parse_args()
     # import algorithm 
     print('import from','ml.'+args.ml)
@@ -343,6 +346,7 @@ if __name__ == '__main__':
         n_bins=args.n_bins,
         gamma=args.gamma,
         rho=args.rho,
+        text_features=args.text.split(','),
         one_hot_encoded=args.ohc,
         **eval_kwargs
     )
