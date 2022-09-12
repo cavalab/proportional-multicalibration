@@ -161,6 +161,8 @@ def evaluate_model(
         'params':jsonify(est.get_params()),
         'process_time': process_time, 
         'time_time': time_time, 
+        'test_encoding': one_hot_encoded,
+        'text_features' : text_features
     }
     results.update(setatts)
         # 'random_state':random_state,
@@ -311,7 +313,7 @@ if __name__ == '__main__':
                         help='Number of bins to consider for calibration')
     parser.add_argument('-gamma', action='store', default=0.05, type=float, 
                         help='Min subpop prevalence (for metrics)')
-    parser.add_argument('-rho', action='store', default=0.1, type=float, 
+    parser.add_argument('-rho', action='store', default=0.001, type=float, 
                         help='Min subpop prevalence (for metrics)')
     parser.add_argument('-ohc', action='store', default=1, type = int,
                         help='Specificy how text should be one-hot-encoded, Input 1 if one-hot encoded, -1 if label encoded, and else embedding encoded')

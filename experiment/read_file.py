@@ -59,7 +59,7 @@ def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Rober
     if(dim < embeddings1.shape[1]):
         temp = np.zeros((dim,embeddings1.shape[1]))
         temp_series = text.value_counts()
-        df = df.loc[text.index].drop(text_label,axis = 1)
+        df = df.loc[text.index]
         text = text.reset_index().drop('index',axis = 1)
         for i in range(dim):
             #Sentences are encoded by calling model.encode()
