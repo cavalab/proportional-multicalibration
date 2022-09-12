@@ -15,22 +15,6 @@ warnings.filterwarnings("ignore")
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 
-def process_adm(data):
-    adm = pd.read_csv(data)
-    return adm
-
-def process_edstay(data):
-    ed = pd.read_csv(data)
-    return ed
-
-def process_tri(data):
-    tri = pd.read_csv(data)
-    return tri
-
-def process_pat(data):
-    pat = pd.read_csv(data)
-    return pat
-
 def merge_all(adm,ed,tri,pat):
     df = ed.merge(tri.drop('subject_id',axis = 1), on = 'stay_id')
     df = df.merge(adm.drop('hadm_id',axis = 1), on = 'subject_id')
@@ -112,10 +96,10 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('loading and processing mimic files...')
-    adm = process_adm(adm)
-    ed = process_edstay(ed)
-    tri = process_tri(tri)
-    pat = process_pat(pat)
+    adm = pd.read_csv(adm)
+    ed = pd.read_csv(ed)
+    tri = pd.read_csv(tri)
+    pat = pd.read_csv(pat)
 
     print('merging...')
     df = merge_all(adm,ed,tri,pat)
@@ -138,12 +122,6 @@ def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('removing outliers...')
     df = remove_outliers(df)
 
-    # print('Cleaning Text Features...')
-    # if(label):
-    #     df = clean_text_label(df)
-    # else:
-    #     df = clean_text(df)
-    
     df = df.drop(columns=['hadm_id','subject_id', 'intime', 'admission_location','admission_type'])
 
     print('finished processing dataset.')
@@ -188,5 +166,5 @@ if __name__ == "__main__":
                  os.path.join(args.mimic_path, args.Edstay_File), 
                  os.path.join(args.mimic_path, args.Triage_File), 
                  os.path.join(args.mimic_path, args.Patient_File),
-                 results_path = args.PATH) # Rerun this file again to include prev_adm
+                 results_path = args.PATH) 
  
