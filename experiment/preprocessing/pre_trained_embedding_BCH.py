@@ -4,7 +4,7 @@ import numpy as np
 import time
 import re
 if __name__ == "__main__":
-    data = pd.read_csv('bch_final.csv')
+    data = pd.read_csv('../data/bch_final.csv')
 
     regex = re.compile('[^a-zA-Z0-9]')
     text= data['chiefcomplaint'].replace('[^a-zA-Z0-9 ]', ' ', regex=True)
