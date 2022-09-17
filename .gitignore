@@ -1,6 +1,8 @@
-experiment/preprocessing/final.csv
+
 *.swp
 *.pyc
 *.json
+*.csv
+*.ipynb_checkpoints
 __pycache__
 anon-repo
