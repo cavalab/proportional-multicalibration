@@ -1,3 +1,4 @@
+from cgitb import text
 import ipdb
 import json
 import pandas as pd
@@ -42,20 +43,26 @@ def label_encode_text(data,text_label,top_ratio = 0.8):
     return df
 
 
-def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Roberta-snli-multinli-stsb',dim =50 ):
+def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Roberta-snli-multinli-stsb',dim =50,pre_trained_embedding = None ):
     """Embedding encoding of column text_label"""
     df = data.copy()
-    regex = re.compile('[^a-zA-Z]')
-    text=  df['chiefcomplaint'].replace('[^a-zA-Z0-9 ]', np.nan, regex=True)
-    text = text.fillna('')
+    regex = re.compile('[^a-zA-Z0-9]')
+    text= df['chiefcomplaint'].replace('[^a-zA-Z0-9 ]', ' ', regex=True)
+    text = text.fillna(' ')
+    text = text.dropna()
     text =  text.str.lower()
     text = text.replace(r'\s+', ' ', regex=True)
     text = text.str.lstrip()
-    # text = text[~text.apply(lambda x: x.isnumeric())]
+    text = text[~text.apply(lambda x: x.isnumeric())]
     sentences = text.values
-
+    # text = text[~text.apply(lambda x: x.isnumeric())]
     model1 = SentenceTransformer(embedding)
-    embeddings1 = model1.encode(sentences)
+    if(pre_trained_embedding):
+        with open(pre_trained_embedding, 'rb') as f:
+            embeddings1 = np.load(f)
+    else:
+        sentences = text.values
+        embeddings1 = model1.encode(sentences)
     if(dim < embeddings1.shape[1]):
         temp = np.zeros((dim,embeddings1.shape[1]))
         temp_series = text.value_counts()
@@ -65,7 +72,6 @@ def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Rober
             #Sentences are encoded by calling model.encode()
             emb1 = model1.encode(text.values[i])
             temp[i,:] = emb1
-        
         cos_sim = util.cos_sim(temp, embeddings1.astype('double'))
         df = pd.concat(
     [
@@ -90,7 +96,7 @@ def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Rober
 
 
 
-def read_file(filename, one_hot_encode, label, text_features=None):
+def read_file(filename, one_hot_encode, label, text_features=None,emb_path = None):
     """read filename into pandas dataframe. optionally onehotencode text
     features, and label encode categorical data. returns X,y.
 
@@ -99,25 +105,13 @@ def read_file(filename, one_hot_encode, label, text_features=None):
                     we apply label_encode_text to text_features.
     """
     input_data = pd.read_csv(filename)
-    # Drop these data for now,
-
-    for col in text_features:
-        if(one_hot_encode == 1):
-            print('One Hot Encoding',col)
-            input_data = one_hot_encode_text(input_data,col)
-        elif(one_hot_encode == -1):
-            print(' Label Encoded Text ',col) # Will add more conditions here for other situation
-            input_data = label_encode_text(input_data,col)
-        else:
-            print(' Embedding Encoded Text ',col) # Will add more conditions here for other situation
-            input_data = embedding_encode_text(input_data,col)
-    X = input_data.drop([label] + text_features,axis = 1)
+    X = input_data.drop(label,axis = 1)
     encodings={}
-    # 
-    for c in X.select_dtypes(['object','category']).columns :
-        # if c in text_features:
-        #     continue
-        #     print(c)
+    # Drop these data for now,
+    for c in X.select_dtypes(['object','category']).columns:
+        if(c in text_features):
+            print(c)
+            continue
         le = LabelEncoder()
         X[c] = le.fit_transform(X[c])
         encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
@@ -125,6 +119,21 @@ def read_file(filename, one_hot_encode, label, text_features=None):
                        }
     with open('label_encodings.json','w') as of:
         json.dump(encodings, of)
+
+    for col in text_features:
+        if(one_hot_encode == 1):
+            print('One Hot Encoding',col)
+            X = one_hot_encode_text(X,col)
+        elif(one_hot_encode == -1):
+            print(' Label Encoded Text ',col) # Will add more conditions here for other situation
+            X = label_encode_text(X,col)
+        else:
+            print(' Embedding Encoded Text ',col) # Will add more conditions here for other situation
+            X = embedding_encode_text(X,col,pre_trained_embedding=emb_path)
+    
+
+    # 
+    X = X.drop(text_features,axis = 1)
     y = input_data[label].astype(int)
     return X, y 
 
