@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='bch_final.csv',type=str,
+                        dest='PATH',default='../data/bch_final.csv',type=str,
             help='Path of Saved final fire')
     args = parser.parse_args()
 
