@@ -101,8 +101,8 @@ def read_file(filename, one_hot_encode, label, text_features=None,emb_path = Non
     features, and label encode categorical data. returns X,y.
 
     text_features: list. features to treat as text. 
-    one_hot_encode: bool. whether to one hot encode text_features. if False,
-                    we apply label_encode_text to text_features.
+    one_hot_encode: str. 
+        how to encode text_features. 'ohc','label_encoding', or 'embedding'.
     """
     input_data = pd.read_csv(filename)
     X = input_data.drop(label,axis = 1)
@@ -121,10 +121,10 @@ def read_file(filename, one_hot_encode, label, text_features=None,emb_path = Non
         json.dump(encodings, of)
 
     for col in text_features:
-        if(one_hot_encode == 1):
+        if(one_hot_encode == 'ohc'):
             print('One Hot Encoding',col)
             X = one_hot_encode_text(X,col)
-        elif(one_hot_encode == -1):
+        elif(one_hot_encode == 'label_encoding'):
             print(' Label Encoded Text ',col) # Will add more conditions here for other situation
             X = label_encode_text(X,col)
         else:

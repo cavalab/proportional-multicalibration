@@ -298,8 +298,9 @@ if __name__ == '__main__':
                         help='Min subpop prevalence (for metrics)')
     parser.add_argument('-rho', action='store', default=0.001, type=float, 
                         help='Min subpop prevalence (for metrics)')
-    parser.add_argument('-ohc', action='store', default=1, type = int,
-                        help='Specificy how text should be one-hot-encoded, Input 1 if one-hot encoded, -1 if label encoded, and else embedding encoded')
+    parser.add_argument('-ohc', action='store', default='ohc', type = str,
+                        choices=['ohc','label_encoding','embedding'],
+                        help='Specificy how text should be one-hot-encoded.')
     parser.add_argument("-text", action='store',type=str,default='chiefcomplaint', help = 
     'Specify text features with comma seperated')
     args = parser.parse_args()
