@@ -1,0 +1,17 @@
+name: pmcpaper
+channels:
+  - conda-forge
+dependencies:
+  - jupyter
+  - pip
+  - scikit-learn
+  - seaborn
+  - pandas
+  - numpy
+  - sentence-transformers
+  - ipdb
+  - pytorch 
+  - pip:
+    - statannotations
+    - pqdm
+  - xgboost
