@@ -72,7 +72,8 @@ COLUMNS_TO_DROP = ['Unnamed: 0', 'Contact Serial Number', 'ED Checkin Dt Tm',
        'ED Checkout Dt Tm', 'MRN','ED Derived Disposition','Race Line']
 
 def rename_data(data):
-    data.rename(columns={"Gender": "gender", "Ethnicity": "ethnicity"},inplace = True)
+    data.rename(columns={"Gender": "gender", "Ethnicity": "ethnicity"
+    ,"isCase": "y", "ED Complaint 1": "chiefcomplaint"},inplace = True)
 
 def process_data(data,dem,results_path = 'final.csv'):
     print('loading and processing BCH files...')
@@ -86,9 +87,9 @@ def process_data(data,dem,results_path = 'final.csv'):
     df = df_dem
     rename_data(df)
 
-    df = df.dropna(subset = ['isCase'])
+    df = df.dropna(subset = ['y'])
     print('finished processing dataset.')
-    print(f'size: {df.shape}, cases: {df.isCase.sum()/len(df)}')
+    print(f'size: {df.shape}, cases: {df.y.sum()/len(df)}')
     print('dataset columns:',df.columns)
     print(df.head())
 
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Input the file location for BCH files", add_help=False)
     parser.add_argument('-bch_path', action='store', type=str,
-                        default='/media/cavalab/data/popp/model.data.60mins_forBill/',
+                        default='/media/cavalab/popp/model.data.60mins_forBill/',
                         help='Path for admission file')
     parser.add_argument('-Data_File', action='store', type=str,
                         default='model.data.60mins_forBill.csv',
@@ -112,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='bch_final.csv',type=str,
+                        dest='PATH',default='../data/bch_final.csv',type=str,
             help='Path of Saved final fire')
     args = parser.parse_args()
 

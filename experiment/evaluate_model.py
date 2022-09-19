@@ -34,7 +34,8 @@ from ml.pmc.metrics import (differential_calibration,
 
 def evaluate_model(
     dataset, 
-    results_path, 
+    results_path,
+    emb_path, 
     random_state, 
     ml, 
     est, 
@@ -42,7 +43,8 @@ def evaluate_model(
     n_bins,
     gamma,
     rho,
-    one_hot_encode,
+    one_hot_encoded,
+    text_features,
     n_samples=0, 
     scale_x = False, 
     pre_train=None,
@@ -69,37 +71,13 @@ def evaluate_model(
     if groups is not None:
         if hasattr(est, 'auditor_type'):
             est.auditor_type = Auditor(groups=groups)
-    # if 'pmc' in ml and hasattr(est, 'scoring'):
-    #     est.scoring = (lambda est,x,y:
-    #               proportional_multicalibration_score(
-    #                   est,x,y,
-    #                   alpha=alpha,
-    #                   n_bins=n_bins,
-    #                   gamma=gamma,
-    #                   rho=rho
-    #               )
-    #              )
-    # elif 'mc' in ml and hasattr(est, 'scoring'):
-    #     est.scoring = (lambda est,x,y:
-    #               multicalibration_score(
-    #                   est,x,y,
-    #                   alpha=alpha,
-    #                   n_bins=n_bins,
-    #                   gamma=gamma
-    #               )
-    #              )
-    # attrs = hasattranywhere(est, 'auditor_type')
-    # for a in attrs: 
-    #     setattr(est,a,Auditor(groups=groups))
     print(40*'=','Evaluating '+ml+' on ',dataset,40*'=',sep='\n')
 
     ##################################################
     # setup data
     ##################################################
-    features, labels = read_file(dataset,
-                                 one_hot_encode = one_hot_encode,
-                                 label='y',
-                                 text_features=['chiefcomplaint'])
+    features, labels = read_file(dataset,one_hot_encode = one_hot_encoded,label='y',
+    text_features=text_features,emb_path = emb_path)
     print('features:')
     print(features.head())
     print(features.shape)
@@ -162,6 +140,8 @@ def evaluate_model(
         'params':jsonify(est.get_params()),
         'process_time': process_time, 
         'time_time': time_time, 
+        'text_encoding': one_hot_encoded,
+        'text_features' : text_features,
     }
     results.update(setatts)
         # 'random_state':random_state,
@@ -252,6 +232,7 @@ def evaluate_model(
     save_file = os.path.join(results_path, '_'.join([f'{n}' for n in [
         dataset_name,
         ml,
+        one_hot_encoded,
         random_state,
         os.environ['LSB_JOBID'] if 'LSB_JOBID' in os.environ.keys() else '',
         datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
@@ -302,8 +283,11 @@ if __name__ == '__main__':
     parser.add_argument('-ml', action='store', default='xgb',type=str, 
             help='Name of estimator (with matching file in ml/)')
     parser.add_argument('-results_path', action='store', dest='RDIR',
-                        default='../results', type=str, 
+                        default='results/', type=str, 
                         help='Name of save file')
+    parser.add_argument('-emb_path', action='store', dest='EMB',
+                        default='preprocessing/BCH_embedding.npy', type=str, 
+                        help='Path of pre_trained embedding saved file')
     parser.add_argument('-seed', action='store', dest='RANDOM_STATE',
                         default=42, type=int, help='Seed / trial')
     parser.add_argument('-alpha', action='store', default=0.01, type=float, 
@@ -312,10 +296,12 @@ if __name__ == '__main__':
                         help='Number of bins to consider for calibration')
     parser.add_argument('-gamma', action='store', default=0.05, type=float, 
                         help='Min subpop prevalence (for metrics)')
-    parser.add_argument('-rho', action='store', default=0.1, type=float, 
+    parser.add_argument('-rho', action='store', default=0.001, type=float, 
                         help='Min subpop prevalence (for metrics)')
-    parser.add_argument('-ohc', action='store_true', default=False,
-                        help='Specificy wheather text should be one-hot-encoded')
+    parser.add_argument('-ohc', action='store', default=1, type = int,
+                        help='Specificy how text should be one-hot-encoded, Input 1 if one-hot encoded, -1 if label encoded, and else embedding encoded')
+    parser.add_argument("-text", action='store',type=str,default='chiefcomplaint', help = 
+    'Specify text features with comma seperated')
     args = parser.parse_args()
     # import algorithm 
     print('import from','ml.'+args.ml)
@@ -338,6 +324,7 @@ if __name__ == '__main__':
     evaluate_model(
         dataset=args.file, 
         results_path=args.RDIR,
+        emb_path = args.EMB,
         random_state=args.RANDOM_STATE,
         ml=args.ml,
         est=algorithm.est, 
@@ -345,6 +332,7 @@ if __name__ == '__main__':
         n_bins=args.n_bins,
         gamma=args.gamma,
         rho=args.rho,
-        one_hot_encode=args.ohc,
+        text_features=args.text.split(','),
+        one_hot_encoded=args.ohc,
         **eval_kwargs
     )

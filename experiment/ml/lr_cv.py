@@ -13,7 +13,14 @@ params = {
             'C': [0.01, 0.1, 1, 10],
          }
 
-ml=LogisticRegression(n_jobs=1, solver='liblinear')
+
+ml=LogisticRegression(n_jobs=1, solver='saga')
+
+grid_est = HalvingGridSearchCV(ml,
+                          params,
+                          cv = 5
+                         )
+
 
 numeric_transformer = Pipeline(steps=[
     ('imputer', SimpleImputer(strategy='median')),
@@ -21,7 +28,7 @@ numeric_transformer = Pipeline(steps=[
 ])
 
 est = Pipeline(steps = [('preprocessor', numeric_transformer), 
-                        ('estimator',ml)
+                        ('estimator',grid_est)
                        ],
                memory=cachedir
               )
