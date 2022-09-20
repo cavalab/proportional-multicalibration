@@ -24,13 +24,14 @@ import os
 import inspect
 from util import jsonify, hasattranywhere
 from ml.pmc.auditor import Auditor
-from ml.pmc.params import (groups, Alphas, Gammas, N_binses, Rhos)
+from ml.pmc.params import (Alphas, Gammas, N_binses, Rhos)
 from ml.pmc.metrics import (differential_calibration, 
                             multicalibration_score,
                             proportional_multicalibration_score,
                             multicalibration_loss,
                             proportional_multicalibration_loss,
                            )
+DEFAULT_GROUPS=['ethnicity','gender']
 
 def evaluate_model(
     dataset, 
@@ -48,6 +49,7 @@ def evaluate_model(
     n_samples=0, 
     scale_x = False, 
     pre_train=None,
+    groups=DEFAULT_GROUPS
     
 ):
     """Main evaluation routine."""
@@ -144,12 +146,6 @@ def evaluate_model(
         'text_features' : text_features,
     }
     results.update(setatts)
-        # 'random_state':random_state,
-        # 'alpha': alpha,
-        # 'n_bins': n_bins,
-        # 'gamma': gamma,
-        # 'rho': rho
-    # }
 
     ##############################
     # scores
@@ -301,9 +297,12 @@ if __name__ == '__main__':
     parser.add_argument('-ohc', action='store', default='ohc', type = str,
                         choices=['ohc','label_encoding','embedding'],
                         help='Specificy how text should be one-hot-encoded.')
+    parser.add_argument('-groups', action='store', default='ethnicity,gender', type = str,
+                        help='groups to protect')
     parser.add_argument("-text", action='store',type=str,default='chiefcomplaint', help = 
     'Specify text features with comma seperated')
     args = parser.parse_args()
+    groups = args.groups.split(',')
     # import algorithm 
     print('import from','ml.'+args.ml)
     algorithm = importlib.__import__('ml.'+args.ml,
@@ -335,5 +334,6 @@ if __name__ == '__main__':
         rho=args.rho,
         text_features=args.text.split(','),
         one_hot_encoded=args.ohc,
+        groups=groups,
         **eval_kwargs
     )
