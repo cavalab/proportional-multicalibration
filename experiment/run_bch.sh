@@ -1,8 +1,8 @@
 #!/usr/bin/bash
-rdir="results/BCH_wgl/"
+rdir="results/BCH/"
 mkdir -p $rdir
 
-dataset="data/bch_final.csv"
+dataset="data/bch_cleaned.csv"
 methods=(
     "lr"
     "rf"
@@ -40,7 +40,7 @@ rhos=(
 )
 ohc="ohc"
 #https://stackoverflow.com/questions/38774355/how-to-parallelize-for-loop-in-bash-limiting-number-of-processes#38775799
-num_procs=128
+num_procs=100
 num_jobs="\j"  # The prompt escape for number of jobs currently running
 
 for s in ${seeds[@]} ; do
@@ -62,6 +62,7 @@ for s in ${seeds[@]} ; do
                             -n_bins $n_bins \
                             -rho $rho \
                             -ml $m \
+                            > "$rdir/bch_ohc[$ohc]_seed[$s]_alpha[$alpha]_gamma[$gamma]_n_bins[$n_bins]_rho[$rho]_ml[$m].log" \
                             &
                         ((++count))
                     done

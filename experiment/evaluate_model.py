@@ -144,12 +144,6 @@ def evaluate_model(
         'text_features' : text_features,
     }
     results.update(setatts)
-        # 'random_state':random_state,
-        # 'alpha': alpha,
-        # 'n_bins': n_bins,
-        # 'gamma': gamma,
-        # 'rho': rho
-    # }
 
     ##############################
     # scores
