@@ -2,7 +2,7 @@ from .rf_mc import est as base_est
 from .rf_mc import hyper_params
 # from .cv.randhalving import CV,params
 from .cv.halving import CV,params
-from .pmc.metrics import multicalibration_score
+from pmc.metrics import multicalibration_score
 from sklearn.metrics import make_scorer
 
 base_est.verbosity=0

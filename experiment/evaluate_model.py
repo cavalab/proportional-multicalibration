@@ -23,13 +23,12 @@ import json
 import os
 import inspect
 from util import jsonify, hasattranywhere
-from ml.pmc.auditor import Auditor
-from ml.pmc.params import (Alphas, Gammas, N_binses, Rhos)
-from ml.pmc.metrics import (differential_calibration, 
+from pmc.auditor import Auditor
+from pmc.metrics import (differential_calibration, 
                             multicalibration_score,
                             proportional_multicalibration_score,
                             multicalibration_loss,
-                            proportional_multicalibration_loss,
+                            proportional_multicalibration_loss
                            )
 DEFAULT_GROUPS=['ethnicity','gender']
 
