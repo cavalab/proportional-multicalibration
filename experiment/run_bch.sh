@@ -6,15 +6,12 @@ dataset="data/bch_cleaned.csv"
 methods=(
     "lr"
     "rf"
-    "xgb"
     "lr_mc"
     "lr_pmc"
     "rf_mc"
     "rf_pmc"
-    "xgb_mc"
-    "xgb_pmc"
 )
-ntrials=50
+ntrials=100
 seeds=$(cat seeds.txt | head -n $ntrials)
 
 # job_submission_file="submission_file"
@@ -31,14 +28,15 @@ gammas=(
 )
 n_binses=(
 5
-10
+# 10
 )
 rhos=(
 0.001
 0.01
-0.1
+# 0.1
 )
 ohc="ohc"
+groups="ethnicity,Race,gender"
 #https://stackoverflow.com/questions/38774355/how-to-parallelize-for-loop-in-bash-limiting-number-of-processes#38775799
 num_procs=100
 num_jobs="\j"  # The prompt escape for number of jobs currently running
@@ -62,6 +60,7 @@ for s in ${seeds[@]} ; do
                             -n_bins $n_bins \
                             -rho $rho \
                             -ml $m \
+                            -groups $groups \
                             > "$rdir/bch_ohc[$ohc]_seed[$s]_alpha[$alpha]_gamma[$gamma]_n_bins[$n_bins]_rho[$rho]_ml[$m].log" \
                             &
                         ((++count))
