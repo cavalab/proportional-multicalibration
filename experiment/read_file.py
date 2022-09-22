@@ -48,14 +48,13 @@ def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Rober
     df = data.copy()
     regex = re.compile('[^a-zA-Z0-9]')
     text= df['chiefcomplaint'].replace('[^a-zA-Z0-9 ]', ' ', regex=True)
-    text = text.fillna(' ')
+    text = text.fillna('___')
     text = text.dropna()
     text =  text.str.lower()
     text = text.replace(r'\s+', ' ', regex=True)
     text = text.str.lstrip()
     text = text[~text.apply(lambda x: x.isnumeric())]
     sentences = text.values
-    # text = text[~text.apply(lambda x: x.isnumeric())]
     model1 = SentenceTransformer(embedding)
     if(pre_trained_embedding):
         with open(pre_trained_embedding, 'rb') as f:
@@ -73,6 +72,7 @@ def embedding_encode_text(data,text_label,embedding = 'pritamdeka/S-Biomed-Rober
             emb1 = model1.encode(text.values[i])
             temp[i,:] = emb1
         cos_sim = util.cos_sim(temp, embeddings1.astype('double'))
+        cos_sim = np.array(cos_sim)
         df = pd.concat(
     [
         df,
