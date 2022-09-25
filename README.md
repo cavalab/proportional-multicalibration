@@ -33,7 +33,7 @@ Once the input are provided, it will process the file, including remove unnecess
 
 See the following for our data preprocessing plans:
 
-### **Step 1 : data merging**
+### **Step 1 : Data Merging**
 
 We first join triage and edstay table on stay_id; then join the result with admission table on subject_id and finally join result with patient table to get gender and age info.
 
@@ -65,10 +65,6 @@ We convert continopus age variable into 5 year bins.
 
 We finally saved our file on path provided(default is the same path), and started our model training. Also note that we drop 'chiefcomplaint' and 'admission_location' when we read files in model training.
 
-## **BCH Data Processing**
-
-TBD
-
 ## **Text/Categorical data processing**
 
 Before we started fitting our model, we first dealt with text/categorical data which can not be direcly used in our machine learning models(experiment/read_file.py). Optionally we one-hot-encode(label-encoded, or use word embedding) text
@@ -97,6 +93,8 @@ Using Sklearn's Label encoder to fit and transform the text data, and only inclu
 
 Using Hugging face's pre-trained transformer model(pritamdeka/S-Biomed-Roberta-snli-multinli-stsb) based on medical text to encode the text. Instead of using the full embedding representation of vector, we use the top 50 most frequent appeared text token and calculate the cosine similarity between the chiefcomplaint and the text.
 
+**For mode detail about the word embedding usage, please refer to experiment/preprocessing/embedding.md**
+
 </ol>
 
 Note that all of those setting with the text encoding can be tuned if needed.
@@ -111,29 +109,100 @@ For all of the model discussed below, we used the following pipelines:
 * 2: Fit one of the model below
 * 3: Saved the resulting metrics(AU-ROC, MC Loss, PMC Loss, and DC loss) with the specific hyperparameter setting or feature importance if applicable.
 
-## **Step 1: Baseline Model:**
+In addition, we allow the user to have the following input options when running the fitting model (experiment/evaluate_model.py):
+
+  -file FILE            Data file to analyze; ensure that the target/label column is labeled as "y". If you use the preprocessing file, you do not need to do anything
+  \
+  -h, --help            Show this help message and exit.
+  \
+  -ml ML                Name of estimator (with matching file in ml/)
+  \
+  -results_path RDIR    Name of save file
+    \
+  -emb_path EMB         Path of pre_trained embedding saved file
+  \
+  -seed RANDOM_STATE    Seed / trial
+  \
+  -alpha ALPHA          Calibration tolerance (for metrics)
+  \
+  -n_bins N_BINS        Number of bins to consider for calibration
+  \
+  -gamma GAMMA          Min subpop prevalence (for metrics)
+  \
+  -rho RHO              Min subpop prevalence (for metrics)
+  \
+  -ohc {ohc,label_encoding,embedding}
+                        Specificy how text should be one-hot-encoded.
+    \
+  -groups GROUPS        groups to protect
+  \
+  -text TEXT            Specify text features with comma seperated
+
+
+### **Model 1: Baseline Models:**
 
 We first fit the three machine learning models without any fairness constraint and evaluated their training and testing AUROC scores as well as other fairness metrics such as MC/PMC/DC loss. We used cross-validation to help us select the best set of hyperparameters and saved them as the baseline model for our models with fairneess improvement as discussed below.
 
-## **Step2: MC Model:**
+### **Model 2: MC Models:**
 
 We improved our model's fairness by fitting our implemented MultiCalibrator using the base estimators discussed above with MC(Multi-Calibration) as the optimized metrics for the model to fit; We finally evaluated their AUROC and other fairness metics using the best hyperparmeter selected by Cross-Validation.
 
-## **Step3: PMC Model:**
+### **Model 3: PMC Models:**
 
 We improved our model's fairness by fitting our implemented MultiCalibrator using the base estimators discussed above with PMC(Proportional Multi-Calibration) as the optimized metrics for the model to fit; We finally evaluated their AUROC and other fairness metics using the best hyperparmeter selected by Cross-Validation.
 
-(with PMC, for categories  in C:
-rbar = get mean prediction on category c
-ybar = mean label on c
+**quick review on the procedure**: 
+
+with PMC, for categories  in C:\
+$\bar r$ = get mean prediction on category c
+\
+$\bar y$ = mean label on c
+\
 if MC:
+\
 t = alpha
+\
 else:
+\
 t = ybar * alpha
+\
 update the model when abs(ybar - rbar) > t:
+
+
+### **Experiment Set up:**
+
+We run 100 trials and run hyperparamter selection on 
+
+alphas=(
+0.01
+0.05
+0.1
 )
+gammas=(
+0.05
+0.10
+)
+n_binses=(
+5
+10
+)
+rhos=(
+0.01
+0.05
+0.1
+)
+methods=(
+    "lr_mc_cv"
+    "lr_pmc_cv"
+    "rf_mc_cv"
+    "rf_pmc_cv"
+)
+using cluster. on MIMIC dataset following the above procedure.
 
-## **Step4: Summralize results:**
+## **Results:**
 
-All of the above results are stored in a json format. We finally created a notebook to display those results in a more tabular format as well as made some visuzizations. We showed that our innonative post-processing algorithm for learning risk prediction models that satisfy proportional multicalibration indeed improved the fairness metrics significantly on our machine learning models as suggested by the three metrics loss while still preseving its performance in terms of AUROC.
-(Put a Link to the notebook & also other models)
+All of the above results will be stored in a json format. We created a notebook to display those results in a more tabular format as well as made some visuzizations. We showed that our innonative post-processing algorithm for learning risk prediction models that satisfy proportional multicalibration indeed improved the fairness metrics significantly on our machine learning models as suggested by the three metrics loss while still preseving its performance in terms of AUROC.
+(https://github.com/cavalab/proportional-multicalibration/blob/main/notebooks/postprocess_experiment.ipynb)
+
+
+
