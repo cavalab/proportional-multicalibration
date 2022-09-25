@@ -107,9 +107,9 @@ After data is ready, we used three classical machine learning methods(XGboosting
 
 For all of the model discussed below, we used the following pipelines:
 
-2: Train and split the data into 3:1 ratio. (Optionally we can scale and sample a subset from the data)
-3: Fit one of the model below
-4: Saved the resulting metrics(AU-ROC, MC Loss, PMC Loss, and DC loss) with the specific hyperparameter setting or feature importance if applicable.
+* 1: Train and split the data into 3:1 ratio. (Optionally we can scale and sample a subset from the data)
+* 2: Fit one of the model below
+* 3: Saved the resulting metrics(AU-ROC, MC Loss, PMC Loss, and DC loss) with the specific hyperparameter setting or feature importance if applicable.
 
 ## **Step 1: Baseline Model:**
 
