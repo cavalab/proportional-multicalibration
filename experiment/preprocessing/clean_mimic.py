@@ -45,7 +45,7 @@ COLUMNS_TO_KEEP = [
                    'ethnicity',
                    'chiefcomplaint', 
                    'gender',
-                   'anchor_year_group'
+                   'anchor_age'
 ]
 
 
