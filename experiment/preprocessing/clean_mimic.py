@@ -96,10 +96,10 @@ def remove_outliers(data,columns = ['temperature', 'heartrate',
 
 def process_data(adm,ed,tri,pat,results_path = 'final.csv'):
     print('loading and processing mimic files...')
-    adm = pd.read_csv(data)
-    ed = pd.read_csv(data)
-    tri = pd.read_csv(data)
-    pat = pd.read_csv(data)
+    adm = pd.read_csv(adm)
+    ed = pd.read_csv(ed)
+    tri = pd.read_csv(tri)
+    pat = pd.read_csv(pat)
 
     print('merging...')
     df = merge_all(adm,ed,tri,pat)
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='data/mimic4_admissions.csv',type=str,
+                        dest='PATH',default='../data/mimic4_admissions.csv',type=str,
             help='Path of Saved final fire')
 
     args = parser.parse_args()

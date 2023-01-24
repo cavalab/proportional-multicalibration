@@ -16,6 +16,18 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 
 from collections import defaultdict
+
+COLUMNS_TO_DROP = [
+    'Unnamed: 0', 
+    'Contact Serial Number',
+    'ED Checkin Dt Tm',
+    'ED Checkout Dt Tm', 
+    'MRN',
+    'ED Derived Disposition',
+    'Race Line',
+    'Patient Death Ind',
+    'ED Room Number'
+]
 # demographics
 A = ['Race','Ethnicity','Gender','Age']
 
@@ -54,7 +66,6 @@ A_options['Race'].update({
     })
 
 # Need to use the data file, might need to merge dem with data file
-
 def clean_dems(df):
     """Re-codes demographics according to dictionaries above"""
     df = df.rename(columns = A_rename)
@@ -64,35 +75,33 @@ def clean_dems(df):
             df[a] = df[a].apply(lambda x: A_options[a][x])
     return df
 
-def read_data(data):
-    df = pd.read_csv(data)
-    return df
-
-COLUMNS_TO_DROP = ['Unnamed: 0', 'Contact Serial Number', 'ED Checkin Dt Tm',
-       'ED Checkout Dt Tm', 'MRN','ED Derived Disposition','Race Line']
-
-def rename_data(data):
-    data.rename(columns={"Gender": "gender", "Ethnicity": "ethnicity"},inplace = True)
-
-def process_data(data,dem,results_path = 'final.csv'):
+def process_data(data,dem,results_path):
     print('loading and processing BCH files...')
-    df_dem = read_data(dem)
-
-    df_dem = df_dem.drop(COLUMNS_TO_DROP,axis = 1)
-
+    df = pd.read_csv(dem)
+    
     print('Renaming the categorical features.')
-    df_dem = clean_dems(df_dem)
+    df = clean_dems(df)
 
-    df = df_dem
-    rename_data(df)
+    # rename data
+    df = df.rename(columns={"Gender": "gender", 
+                         "Ethnicity": "ethnicity",
+                         "isCase": "y", 
+                         "ED Complaint 1": 
+                         "chiefcomplaint"})
 
-    df = df.dropna(subset = ['isCase'])
+    # remove deceased patients
+    df = df.loc[df['Patient Death Ind']==False]
+
+    print('dropping columns...')
+    df = df.drop(COLUMNS_TO_DROP,axis = 1)
+
+    df = df.dropna(subset = ['y'])
     print('finished processing dataset.')
-    print(f'size: {df.shape}, cases: {df.isCase.sum()/len(df)}')
+    print(f'size: {df.shape}, cases: {df.y.sum()/len(df)}')
     print('dataset columns:',df.columns)
-    print(df.head())
+    print(df)
 
-    print('saving...')
+    print(f'saving to {results_path}...')
     df.to_csv(results_path,index= False)
     print('done.')
 
@@ -101,7 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Input the file location for BCH files", add_help=False)
     parser.add_argument('-bch_path', action='store', type=str,
-                        default='/media/cavalab/data/popp/model.data.60mins_forBill/',
+                        default='/media/cavalab/popp/model.data.60mins_forBill/',
                         help='Path for admission file')
     parser.add_argument('-Data_File', action='store', type=str,
                         default='model.data.60mins_forBill.csv',
@@ -112,11 +121,13 @@ if __name__ == "__main__":
     parser.add_argument('-h', '--help', action='help',
                         help='Show this help message and exit.')
     parser.add_argument('-p', action='store',
-                        dest='PATH',default='bch_final.csv',type=str,
+                        dest='PATH',default='../data/bch_cleaned.csv',type=str,
             help='Path of Saved final fire')
     args = parser.parse_args()
 
-    process_data(os.path.join(args.bch_path, args.Data_File), 
-                 os.path.join(args.bch_path, args.Dem_File), 
-                 results_path = args.PATH) # Rerun this file again to include prev_adm
+    process_data(
+        os.path.join(args.bch_path, args.Data_File), 
+        os.path.join(args.bch_path, args.Dem_File), 
+        args.PATH
+    ) 
  
