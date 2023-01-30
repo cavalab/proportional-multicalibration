@@ -1,3 +1,4 @@
+setwd("/home/bill/projects/multi-differential-calibration/overleaf/figs/")
 #simulation goal, show proportional multicalibration of multicalibrated odds
 set.seed(12393)
 library(ggplot2)
@@ -124,7 +125,7 @@ p1=ggplot()+geom_point(data=res,aes(x=P,y=PMC,color=`|delta|`))+geom_line(data=r
   scale_x_continuous(breaks=seq(0.2,0.8,0.1))+
   scale_y_continuous(breaks=seq(0.0,0.8,0.1))
 
-cairo_pdf("/home/elle/Desktop/project1/sim_plot1.pdf",width=12,height=8)
+cairo_pdf("sim_plot1.pdf",width=8,height=8)
 p1
 dev.off()
 p2=ggplot()+geom_point(data=res,aes(x=P,y=PMC,color=`|delta|`))+geom_smooth(data=res,aes(x=P,y=PMC,color=`|delta|`,fill=`|delta|`))+
@@ -137,6 +138,6 @@ p2=ggplot()+geom_point(data=res,aes(x=P,y=PMC,color=`|delta|`))+geom_smooth(data
   scale_fill_discrete("|\u0394|")+
   scale_x_continuous(breaks=seq(0.2,0.8,0.1))+
   scale_y_continuous(breaks=seq(0.0,0.8,0.1))
-  cairo_pdf("/home/elle/Desktop/project1/sim_plot2.pdf",width=12,height=8)
+  cairo_pdf("sim_plot2.pdf",width=8,height=8)
   p2
   dev.off()
