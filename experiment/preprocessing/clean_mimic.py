@@ -26,26 +26,26 @@ def merge_all(adm,ed,tri,pat):
     return df
 
 COLUMNS_TO_KEEP = [
-                   'subject_id',
-                   'hadm_id',
-                   'intime',
-                   'admission_type',
-                   'admission_location',
-                   'temperature',
-                   'heartrate',
-                   'resprate',
-                   'o2sat',
-                   'sbp',
-                   'dbp',
-                   'pain', 
-                   'acuity',
-                   'insurance',
-                   'language',
-                   'marital_status',
-                   'ethnicity',
-                   'chiefcomplaint', 
-                   'gender',
-                   'anchor_year_group'
+    'subject_id',
+    'hadm_id',
+    'intime',
+    'admission_type',
+    'admission_location',
+    'temperature',
+    'heartrate',
+    'resprate',
+    'o2sat',
+    'sbp',
+    'dbp',
+    'pain', 
+    'acuity',
+    'insurance',
+    'language',
+    'marital_status',
+    'ethnicity',
+    'chiefcomplaint', 
+    'gender',
+    'anchor_age'
 ]
 
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Input the file location for the four files from MIMIC IV.", add_help=False)
     parser.add_argument('-mimic_path', action='store', type=str,
-                        default='/media/cavalab/data/mimic-iv/mimic-iv-1.0/',
+                        default='/media/cavalab/public/mimic-iv/mimic-iv-1.0/',
                         help='Path for admission file')
     parser.add_argument('-Admission_File', action='store', type=str,
                         default='core/admissions.csv.gz',

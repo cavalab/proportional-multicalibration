@@ -37,7 +37,7 @@ def jsonify(d):
             obj['vars'][k] = jsonify(v)
         return obj
     elif not isinstance(d, str):
-        logger.debug("attempting to store ",d,"as a str for json")
+        # logger.debug(f"attempting to store {d} as a str for json")
         return str(d)
     return d
 

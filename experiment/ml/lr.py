@@ -8,7 +8,7 @@ import numpy as np
 from tempfile import mkdtemp
 cachedir = mkdtemp()
 
-ml = LogisticRegression(n_jobs=-1, solver='saga',penalty='l1')
+ml = LogisticRegression(n_jobs=1, solver='saga',penalty='l1')
 
 
 numeric_transformer = Pipeline(steps=[
