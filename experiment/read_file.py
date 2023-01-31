@@ -117,8 +117,9 @@ def read_file(filename, one_hot_encode, label, text_features=None,emb_path = Non
         encodings[c] = {k:list(v) if isinstance(v, np.ndarray) else v 
                         for k,v in vars(le).items()
                        }
-    with open(f'{filename}.label_encodings.json','w') as of:
-        json.dump(encodings, of)
+    if len(encodings) > 0:
+        with open(f'{filename}.label_encodings.json','w') as of:
+            json.dump(encodings, of)
 
     for col in text_features:
         if(one_hot_encode == 'ohc'):

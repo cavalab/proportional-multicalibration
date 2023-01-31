@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 import sys
 from xmlrpc.client import Boolean
@@ -52,6 +53,7 @@ def evaluate_model(
     """Main evaluation routine."""
 
 
+    run_id = str(uuid.uuid4())
     ##################################################
     # setup data
     ##################################################
@@ -120,16 +122,19 @@ def evaluate_model(
     # store results
     dataset_name = dataset.split('/')[-1].split('.')[0]
     results = {
-        'dataset':dataset,
         'algorithm':ml,
+        'dataset':dataset,
         'params':jsonify(est.get_params()),
         'process_time': process_time, 
         'time_time': time_time, 
         'text_encoding': one_hot_encoded,
         'text_features' : text_features,
-        'groups': groups
+        'groups': groups,
+        'run_id': run_id
     }
     results.update(setatts)
+    if hasattr(est, 'n_updates_'):
+        results['n_updates'] = est.n_updates_
 
     ##############################
     # scores
@@ -214,16 +219,21 @@ def evaluate_model(
     if not os.path.exists(results_path):
         os.makedirs(results_path, exist_ok=True)
 
-    save_file = os.path.join(results_path, '_'.join([f'{n}' for n in [
-        dataset_name,
-        ml,
-        one_hot_encoded,
-        random_state,
-        os.environ['LSB_JOBID'] if 'LSB_JOBID' in os.environ.keys() else '',
-        datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-        ]
-        ]
-        )
+    save_file = os.path.join(
+        results_path, 
+        '_'.join([ f'{n}' for n in [
+            dataset_name,
+            ml,
+            one_hot_encoded,
+            random_state,
+            alpha,
+            gamma,
+            rho,
+            datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            os.environ['LSB_JOBID'] if 'LSB_JOBID' in os.environ.keys() else '',
+            run_id
+            ]
+        ])
     )
 
     print('save_file:',save_file)
